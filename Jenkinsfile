@@ -3,7 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/jldeen/jenkins-pipeline@dev')
+@Library('github.com/oveits/jenkins-pipeline@hotfix/0001-problems-tagging-branch-with-slash')
 
 def pipeline = new io.estrado.Pipeline()
 
