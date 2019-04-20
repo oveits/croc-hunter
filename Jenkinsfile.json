@@ -5,16 +5,16 @@
     "cpu": "10m",
     "memory": "128Mi",
     "test": true,
-    "hostname": "crochunter.jessicadeen.com"
+    "hostname": "crochunter.vocon-it.com"
   },
   "k8s_secret": {
     "name": "croc-hunter-secrets"
   },
   "container_repo": {
-    "host": "acrjdtest.azurecr.io",
-    "master_acct": "acrjdtest",
-    "alt_acct": "acrjdtest",
-    "jenkins_creds_id": "acr_creds",
+    "host": "hub.docker.com",
+    "master_acct": "oveits",
+    "alt_acct": "oveits",
+    "jenkins_creds_id": "oveits_docker_hub",
     "repo": "crochunter",
     "dockeremail": ".",
     "dockerfile": "./",
