@@ -11,7 +11,7 @@
     "name": "croc-hunter-secrets"
   },
   "container_repo": {
-    "host": "hub.docker.com",
+    "host": "index.docker.io",
     "master_acct": "oveits",
     "alt_acct": "oveits",
     "jenkins_creds_id": "oveits_docker_hub",
