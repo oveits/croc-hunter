@@ -85,6 +85,7 @@ volumes:[
         //sh "docker push oveits/crochunter"
 
         withDockerRegistry([ credentialsId: config.container_repo.jenkins_creds_id, url: "https://docker.io" ]) {
+          sh "docker login -u config.container_repo.jenkins_creds_id.user -p config.container_repo.jenkins_creds_id.password docker.io"
           sh "docker push docker.io/oveits/crochunter"
           //sh "docker push oveits/crochunter"
           //sh "docker push oveits/crochunter:hotfix-0004-docker-hub-requested-access-to-the-resource-is-denied-ffe4865"
