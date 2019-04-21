@@ -80,6 +80,7 @@ volumes:[
         }
 
         sh script: "docker search hello", returnStdout: true
+        sh "docker search hello"
 
         // build and publish container
 /*
