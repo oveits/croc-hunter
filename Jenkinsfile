@@ -28,7 +28,7 @@ volumes:[
           sh "echo ${env.PASSWORD} | docker login -u ${env.USERNAME} --password-stdin ${config.container_repo.host}"
         }
 
-        sh script "docker search hello", returnStdout: true
+        sh script: "docker search hello", returnStdout: true
 
         // build and publish container
 /*
