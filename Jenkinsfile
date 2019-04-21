@@ -82,7 +82,12 @@ volumes:[
         //sh script: "docker search hello", returnStdout: true
         sh "docker search hello"
         sh "docker images"
-        sh "docker push oveits/crochunter"
+        //sh "docker push oveits/crochunter"
+
+        withDockerRegistry([ credentialsId: config.container_repo.jenkins_creds_id, url: "" ]) {
+          sh "docker push oveits/crochunter"
+        }
+
 
         // build and publish container
 /*
