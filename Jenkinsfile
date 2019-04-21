@@ -18,6 +18,7 @@ volumes:[
     hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
 ]){
 
+  node ('jenkins-pipeline') {
     stage ('publish container') {
 
       container('docker') {
@@ -45,7 +46,6 @@ volumes:[
       }
 
     }
-  node ('jenkins-pipeline') {
 
     def pwd = pwd()
     def chart_dir = "${pwd}/charts/croc-hunter"
