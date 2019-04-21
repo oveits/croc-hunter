@@ -1,0 +1,284 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2019-04-21T02:00:57Z"
+  labels:
+    jenkins: slave
+    jenkins/jenkins-pipeline: "true"
+  name: jenkins-slave-hvrn0-g6008
+  namespace: jenkins
+  resourceVersion: "1405937"
+  selfLink: /api/v1/namespaces/jenkins/pods/jenkins-slave-hvrn0-g6008
+  uid: 4d8729b3-63d9-11e9-95df-960000233a0f
+spec:
+  containers:
+  - command:
+    - cat
+    env:
+    - name: JENKINS_SECRET
+      value: abe5658d531380c9e538a11a2042a4d439c569cbc26e3c73b93dac50d8d4c4a0
+    - name: JENKINS_TUNNEL
+      value: jenkins-agent:50000
+    - name: JENKINS_NAME
+      value: jenkins-slave-hvrn0-g6008
+    - name: JENKINS_URL
+      value: http://jenkins:8080/
+    - name: HOME
+      value: /home/jenkins
+    image: golang:1.8.3
+    imagePullPolicy: IfNotPresent
+    name: golang
+    resources: {}
+    securityContext:
+      privileged: false
+      procMount: Default
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    tty: true
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: volume-0
+    - mountPath: /home/jenkins
+      name: workspace-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-b8fgb
+      readOnly: true
+    workingDir: /home/jenkins
+  - command:
+    - cat
+    env:
+    - name: JENKINS_SECRET
+      value: abe5658d531380c9e538a11a2042a4d439c569cbc26e3c73b93dac50d8d4c4a0
+    - name: JENKINS_TUNNEL
+      value: jenkins-agent:50000
+    - name: JENKINS_NAME
+      value: jenkins-slave-hvrn0-g6008
+    - name: JENKINS_URL
+      value: http://jenkins:8080/
+    - name: HOME
+      value: /home/jenkins
+    image: lachlanevenson/k8s-kubectl:v1.10.7
+    imagePullPolicy: IfNotPresent
+    name: kubectl
+    resources: {}
+    securityContext:
+      privileged: false
+      procMount: Default
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    tty: true
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: volume-0
+    - mountPath: /home/jenkins
+      name: workspace-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-b8fgb
+      readOnly: true
+    workingDir: /home/jenkins
+  - args:
+    - abe5658d531380c9e538a11a2042a4d439c569cbc26e3c73b93dac50d8d4c4a0
+    - jenkins-slave-hvrn0-g6008
+    env:
+    - name: JENKINS_SECRET
+      value: abe5658d531380c9e538a11a2042a4d439c569cbc26e3c73b93dac50d8d4c4a0
+    - name: JENKINS_TUNNEL
+      value: jenkins-agent:50000
+    - name: JENKINS_NAME
+      value: jenkins-slave-hvrn0-g6008
+    - name: JENKINS_URL
+      value: http://jenkins:8080/
+    - name: HOME
+      value: /home/jenkins
+    image: jenkinsci/jnlp-slave:3.19-1-alpine
+    imagePullPolicy: IfNotPresent
+    name: jnlp
+    resources:
+      limits:
+        cpu: 300m
+        memory: 512Mi
+      requests:
+        cpu: 200m
+        memory: 256Mi
+    securityContext:
+      privileged: false
+      procMount: Default
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: volume-0
+    - mountPath: /home/jenkins
+      name: workspace-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-b8fgb
+      readOnly: true
+    workingDir: /home/jenkins
+  - command:
+    - cat
+    env:
+    - name: JENKINS_SECRET
+      value: abe5658d531380c9e538a11a2042a4d439c569cbc26e3c73b93dac50d8d4c4a0
+    - name: JENKINS_TUNNEL
+      value: jenkins-agent:50000
+    - name: JENKINS_NAME
+      value: jenkins-slave-hvrn0-g6008
+    - name: JENKINS_URL
+      value: http://jenkins:8080/
+    - name: HOME
+      value: /home/jenkins
+    image: lachlanevenson/k8s-helm:v2.12.1
+    imagePullPolicy: IfNotPresent
+    name: helm
+    resources: {}
+    securityContext:
+      privileged: false
+      procMount: Default
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    tty: true
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: volume-0
+    - mountPath: /home/jenkins
+      name: workspace-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-b8fgb
+      readOnly: true
+    workingDir: /home/jenkins
+  - command:
+    - cat
+    env:
+    - name: JENKINS_SECRET
+      value: abe5658d531380c9e538a11a2042a4d439c569cbc26e3c73b93dac50d8d4c4a0
+    - name: JENKINS_TUNNEL
+      value: jenkins-agent:50000
+    - name: JENKINS_NAME
+      value: jenkins-slave-hvrn0-g6008
+    - name: JENKINS_URL
+      value: http://jenkins:8080/
+    - name: HOME
+      value: /home/jenkins
+    image: docker:latest
+    imagePullPolicy: IfNotPresent
+    name: docker
+    resources: {}
+    securityContext:
+      privileged: false
+      procMount: Default
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    tty: true
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: volume-0
+    - mountPath: /home/jenkins
+      name: workspace-volume
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-b8fgb
+      readOnly: true
+    workingDir: /home/jenkins
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: dev-node1
+  priority: 0
+  restartPolicy: Never
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - hostPath:
+      path: /var/run/docker.sock
+      type: ""
+    name: volume-0
+  - emptyDir: {}
+    name: workspace-volume
+  - name: default-token-b8fgb
+    secret:
+      defaultMode: 420
+      secretName: default-token-b8fgb
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2019-04-21T02:00:57Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2019-04-21T02:00:59Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2019-04-21T02:00:59Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2019-04-21T02:00:57Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://f0066ad558e7df3f0cf05e811442dc603719a37c139c7c0d4861cdff30ae2673
+    image: docker:latest
+    imageID: docker-pullable://docker@sha256:12f63b68f55925351f2bc14c44ef9275df29db92b66c9ef4db16b78f2e7eed28
+    lastState: {}
+    name: docker
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2019-04-21T02:00:59Z"
+  - containerID: docker://626e15b4c5bfb576c8d671b007b0b5939c38a958d03c7d0b201f48efb060df39
+    image: golang:1.8.3
+    imageID: docker-pullable://golang@sha256:32c769bf92205580d6579d5b93c3c705f787f6c648105f00bb88a35024c7f8e4
+    lastState: {}
+    name: golang
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2019-04-21T02:00:58Z"
+  - containerID: docker://f0f4d6330ec12d1feb7341eb31ddab554058496fca3a3b3f114648f273b64441
+    image: lachlanevenson/k8s-helm:v2.12.1
+    imageID: docker-pullable://lachlanevenson/k8s-helm@sha256:2a65450510a0e30f764c1c006c45a86fc6f130c2d2be959a0215b1bbe83d088b
+    lastState: {}
+    name: helm
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2019-04-21T02:00:58Z"
+  - containerID: docker://b972f1860041ad4519ee84957c8cbaef625bf9ad5ae509c5797a180c215b09bb
+    image: jenkinsci/jnlp-slave:3.19-1-alpine
+    imageID: docker-pullable://jenkinsci/jnlp-slave@sha256:32f3dd83136e8ef11c6661df77e70ce18cf764e1031b8f67542193711227c08e
+    lastState: {}
+    name: jnlp
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2019-04-21T02:00:58Z"
+  - containerID: docker://21ba6ab46c72f0078a974afbd6dc4d9d96664fd395559c601325b9c6520c877a
+    image: lachlanevenson/k8s-kubectl:v1.10.7
+    imageID: docker-pullable://lachlanevenson/k8s-kubectl@sha256:18b9eeced5b9455c18c3da770040056d72a4cf26c18bd220d8802273fb9cf436
+    lastState: {}
+    name: kubectl
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2019-04-21T02:00:58Z"
+  hostIP: 116.203.107.195
+  phase: Running
+  podIP: 10.44.0.4
+  qosClass: Burstable
+  startTime: "2019-04-21T02:00:57Z"

@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    certmanager.k8s.io/cluster-issuer: letsencrypt-prod
+    ingress.kubernetes.io/secure-backends: "true"
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+
+  name: jenkins
+spec:
+  rules:
+  - host: "jenkins.dev.vocon-it.com"
+    http:
+      paths:
+      - backend:
+          serviceName: jenkins
+          servicePort: 8080
+  tls:
+    - hosts:
+      - jenkins.dev.vocon-it.com
+      secretName: jenkins.dev.vocon-it.com
+

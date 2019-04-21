@@ -11,7 +11,7 @@ Master:
     limits:
       cpu: "2000m"
       memory: "2048Mi"
-  HostName: jenkins.k8s.az.jessicadeen.com
+  HostName: jenkins.dev.vocon-it.com
   ServiceType: ClusterIP
   ServicePort: 8080
   InstallPlugins:
@@ -45,9 +45,14 @@ Master:
       ingress.kubernetes.io/secure-backends: "true"
 
     TLS:
-      - secretName: jenkins.k8s.az.jessicadeen.com
+      - secretName: jenkins.dev.vocon-it.com
         hosts:
-          - jenkins.k8s.az.jessicadeen.com
+          - jenkins.dev.vocon-it.com
+
+# OV is ignored?
+#  Persistence:
+#    Enabled: true
+#    StorageClass: "my-local-storage-class"
 
 Agent:
   Enabled: false
