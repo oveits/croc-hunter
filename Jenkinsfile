@@ -18,6 +18,33 @@ volumes:[
     hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
 ]){
 
+    stage ('publish container') {
+
+      container('docker') {
+
+        // perform docker login to container registry as the docker-pipeline-plugin doesn't work with the next auth json format
+        withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
+                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+          sh "echo ${env.PASSWORD} | docker login -u ${env.USERNAME} --password-stdin ${config.container_repo.host}"
+        }
+
+        sh script "docker search hello", returnStdout: true
+
+        // build and publish container
+/*
+        pipeline.containerBuildPub(
+            dockerfile: config.container_repo.dockerfile,
+            host      : config.container_repo.host,
+            acct      : acct,
+            repo      : config.container_repo.repo,
+            tags      : image_tags_list,
+            auth_id   : config.container_repo.jenkins_creds_id,
+            image_scanning: config.container_repo.image_scanning
+        )
+*/
+      }
+
+    }
   node ('jenkins-pipeline') {
 
     def pwd = pwd()
