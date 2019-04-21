@@ -3,7 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@hotfix/0001-problems-tagging-branch-with-slash')
+@Library('github.com/oveits/jenkins-pipeline@hotfix/0002-docker-hub-requested-access-to-the-resource-is-denied')
 
 def pipeline = new io.estrado.Pipeline()
 
