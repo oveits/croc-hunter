@@ -78,8 +78,8 @@ steps:
       #- custom_imagePullSecrets_repository=${{REPOSITORY}}
       #- custom_imagePullSecrets_email=${{REPO_EMAIL}}
       #- custom_image=jfrogjd-crochunter.jfrog.io/oscon18/crochunter
-      - custom_image=oveits/crochunter
-      #- custom_ingress_hostname=${{INGRESS_HOSTNAME}}
+      #- custom_image=oveits/crochunter
+      - custom_ingress_hostname=${{INGRESS_HOSTNAME}}
     on_success:
       metadata:
         set:
@@ -95,11 +95,11 @@ steps:
       - CMD_PS=--dry-run
       - custom_imageTag=${{CF_BRANCH_TAG_NORMALIZED}}-${{CF_SHORT_REVISION}}
       - custom_commit_sha=${{CF_SHORT_REVISION}}
-      - custom_imagePullSecrets_username=${{REPO_USER}}
-      - custom_imagePullSecrets_password=${{REPO_PASS}}
-      - custom_imagePullSecrets_repository=${{REPOSITORY}}
-      - custom_imagePullSecrets_email=${{REPO_EMAIL}}
-      - custom_image=jfrogjd-crochunter.jfrog.io/oscon18/crochunter
+      #- custom_imagePullSecrets_username=${{REPO_USER}}
+      #- custom_imagePullSecrets_password=${{REPO_PASS}}
+      #- custom_imagePullSecrets_repository=${{REPOSITORY}}
+      #- custom_imagePullSecrets_email=${{REPO_EMAIL}}
+      #- custom_image=jfrogjd-crochunter.jfrog.io/oscon18/crochunter
       - custom_ingress_hostname=${{INGRESS_HOSTNAME}}
   BuildingTestDockerImage:
     title: Building Test Docker Image
