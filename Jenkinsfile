@@ -10,13 +10,22 @@ def pipeline = new io.estrado.Pipeline()
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
     containerTemplate(
-      name: 'selenium_standalone', 
+      name: 'selenium_hub', 
       image: 'selenium/hub:latest', 
-      ports: [4444], 
       resourceRequestCpu: '200m', 
       resourceLimitCpu: '300m', 
       resourceRequestMemory: '256Mi', 
-      resourceLimitMemory: '512Mi'
+      resourceLimitMemory: '512Mi',
+      envVars: [
+        #envVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
+        #secretEnvVar(key: 'MYSQL_PASSWORD', secretName: 'mysql-secret', secretKey: 'password'),
+        #...
+        envVar(key: 'SE_OPTS', value: '-debug'),
+        envVar(key: 'GRID_MAX_SESSION', value: '5')
+      ],
+      ports: [
+        portMapping(name: 'selenium', containerPort: 4444, hostPort: 4444)
+      ]
     ),
     containerTemplate(
       name: 'jnlp', 
