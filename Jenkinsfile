@@ -29,7 +29,7 @@ podTemplate(label: 'jenkins-pipeline',
     ),
     containerTemplate(
       name: 'chrome-node', 
-      image: 'selenium/node-chrome:latest' 
+      image: 'selenium/node-chrome:latest',
       // resourceRequestCpu: '200m', 
       // resourceLimitCpu: '300m', 
       // resourceRequestMemory: '256Mi', 
