@@ -10,7 +10,7 @@ def pipeline = new io.estrado.Pipeline()
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
     containerTemplate(
-      name: 'selenium_hub', 
+      name: 'selenium-hub', 
       image: 'selenium/hub:latest', 
       resourceRequestCpu: '200m', 
       resourceLimitCpu: '300m', 
@@ -28,16 +28,17 @@ podTemplate(label: 'jenkins-pipeline',
       ]
     ),
     containerTemplate(
-      name: 'chrome_node', 
+      name: 'chrome-node', 
       image: 'selenium/node-chrome:latest', 
       resourceRequestCpu: '200m', 
       resourceLimitCpu: '300m', 
       resourceRequestMemory: '256Mi', 
       resourceLimitMemory: '512Mi',
-      command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"'
+      command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"',
+      ttyEnabled: true,
       envVars: [
-        envVar(key: 'HUB_HOST', value: 'selenium_hub'),
-        envVar(key: 'REMOTE_HOST', value: 'http://chrome_node:5555'),
+        envVar(key: 'HUB_HOST', value: 'selenium-hub'),
+        envVar(key: 'REMOTE_HOST', value: 'http://chrome-node:5555'),
         envVar(key: 'NODE_MAX_SESSION', value: '5'),
         envVar(key: 'NODE_MAX_INSTANCES', value: '5')
       ],
@@ -47,16 +48,17 @@ podTemplate(label: 'jenkins-pipeline',
       ]
     ),
     containerTemplate(
-      name: 'firefox_node', 
+      name: 'firefox-node', 
       image: 'selenium/node-firefox:latest', 
       resourceRequestCpu: '200m', 
       resourceLimitCpu: '300m', 
       resourceRequestMemory: '256Mi', 
       resourceLimitMemory: '512Mi',
-      command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"'
+      command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"',
+      ttyEnabled: true,
       envVars: [
-        envVar(key: 'HUB_HOST', value: 'selenium_hub'),
-        envVar(key: 'REMOTE_HOST', value: 'http://firefox_node:5555'),
+        envVar(key: 'HUB_HOST', value: 'selenium-hub'),
+        envVar(key: 'REMOTE_HOST', value: 'http://firefox-node:5555'),
         envVar(key: 'NODE_MAX_SESSION', value: '5'),
         envVar(key: 'NODE_MAX_INSTANCES', value: '5')
       ],
@@ -78,22 +80,26 @@ podTemplate(label: 'jenkins-pipeline',
     containerTemplate(
       name: 'docker', 
       image: 'docker:latest', 
-      command: 'cat', ttyEnabled: true
+      command: 'cat', 
+      ttyEnabled: true
     ),
     containerTemplate(
       name: 'golang', 
       image: 'golang:1.8.3', 
-      command: 'cat', ttyEnabled: true
+      command: 'cat', 
+      ttyEnabled: true
     ),
     containerTemplate(
       name: 'helm', 
       image: 'lachlanevenson/k8s-helm:v2.12.1', 
-      command: 'cat', ttyEnabled: true
+      command: 'cat', 
+      ttyEnabled: true
     ),
     containerTemplate(
       name: 'kubectl', 
       image: 'lachlanevenson/k8s-kubectl:v1.10.7', 
-      command: 'cat', ttyEnabled: true)
+      command: 'cat', 
+      ttyEnabled: true)
   ],
   volumes: [
     hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
