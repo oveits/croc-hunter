@@ -44,7 +44,7 @@ podTemplate(label: 'jenkins-pipeline',
       ],
       ports: [
         portMapping(name: 'vnc', containerPort: 5900, hostPort: 5900),
-        portMapping(name: 'selenium_client', containerPort: 5555, hostPort: 5555)
+        portMapping(name: 'chrome-node', containerPort: 5555, hostPort: 5555)
       ]
 /*
 */
