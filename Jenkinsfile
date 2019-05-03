@@ -27,7 +27,6 @@ podTemplate(label: 'jenkins-pipeline',
         portMapping(name: 'selenium', containerPort: 4444, hostPort: 4444)
       ]
     ),
-/*
     containerTemplate(
       name: 'chrome-node', 
       image: 'selenium/node-chrome:latest', 
@@ -48,6 +47,7 @@ podTemplate(label: 'jenkins-pipeline',
         portMapping(name: 'selenium_client', containerPort: 5555, hostPort: 5555)
       ]
     ),
+/*
     containerTemplate(
       name: 'firefox-node', 
       image: 'selenium/node-firefox:latest', 
