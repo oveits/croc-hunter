@@ -30,7 +30,6 @@ podTemplate(label: 'jenkins-pipeline',
     containerTemplate(
       name: 'chrome-node', 
       image: 'selenium/node-chrome:latest' 
-/*
       // resourceRequestCpu: '200m', 
       // resourceLimitCpu: '300m', 
       // resourceRequestMemory: '256Mi', 
@@ -43,6 +42,7 @@ podTemplate(label: 'jenkins-pipeline',
         envVar(key: 'NODE_MAX_SESSION', value: '5'),
         envVar(key: 'NODE_MAX_INSTANCES', value: '5')
       ],
+/*
       ports: [
         portMapping(name: 'vnc', containerPort: 5900, hostPort: 5900),
         portMapping(name: 'selenium_client', containerPort: 5555, hostPort: 5555)
