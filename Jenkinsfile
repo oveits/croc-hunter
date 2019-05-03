@@ -17,14 +17,32 @@ podTemplate(label: 'jenkins-pipeline',
       resourceRequestMemory: '256Mi', 
       resourceLimitMemory: '512Mi',
       envVars: [
-        #envVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
-        #secretEnvVar(key: 'MYSQL_PASSWORD', secretName: 'mysql-secret', secretKey: 'password'),
-        #...
+        // envVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
+        // secretEnvVar(key: 'MYSQL_PASSWORD', secretName: 'mysql-secret', secretKey: 'password'),
+        // ...
         envVar(key: 'SE_OPTS', value: '-debug'),
         envVar(key: 'GRID_MAX_SESSION', value: '5')
       ],
       ports: [
         portMapping(name: 'selenium', containerPort: 4444, hostPort: 4444)
+      ]
+    ),
+    containerTemplate(
+      name: 'chrome_node', 
+      image: 'selenium/node-chrome:latest', 
+      resourceRequestCpu: '200m', 
+      resourceLimitCpu: '300m', 
+      resourceRequestMemory: '256Mi', 
+      resourceLimitMemory: '512Mi',
+      envVars: [
+        envVar(key: 'HUB_HOST', value: 'selenium_hub'),
+        envVar(key: 'REMOTE_HOST', value: 'http://chrome_node:5555'),
+        envVar(key: 'NODE_MAX_SESSION', value: '5'),
+        envVar(key: 'NODE_MAX_INSTANCES', value: '5')
+      ],
+      ports: [
+        portMapping(name: 'vnc', containerPort: 5900, hostPort: 5900),
+        portMapping(name: 'selenium_client', containerPort: 5555, hostPort: 5555)
       ]
     ),
     containerTemplate(
