@@ -9,6 +9,7 @@ def pipeline = new io.estrado.Pipeline()
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
+/*
     containerTemplate(
       name: 'selenium-hub', 
       image: 'selenium/hub:latest', 
@@ -67,6 +68,7 @@ podTemplate(label: 'jenkins-pipeline',
         portMapping(name: 'selenium_client', containerPort: 5555, hostPort: 5555)
       ]
     ),
+*/
     containerTemplate(
       name: 'jnlp', 
       image: 'jenkinsci/jnlp-slave:3.19-1-alpine', 
