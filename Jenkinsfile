@@ -7,6 +7,8 @@
 
 def pipeline = new io.estrado.Pipeline()
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
+def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLower()
+def seleniumRelease = 'selenium' // 'selenium-' + uniqueBranchName
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
@@ -220,10 +222,10 @@ podTemplate(label: 'jenkins-pipeline',
 
           sh """
             # purge deleted versions of selenium, if present
-            helm list -a | grep '^selenium ' && helm delete --purge selenium || true
+            helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
 
             # upgrade selenium revision. Install, if not present:
-            helm upgrade --install selenium stable/selenium \
+            helm upgrade --install ${seleniumRelease} stable/selenium \
               --namespace selenium \
               --set chromeDebug.enabled=true
           """
@@ -275,8 +277,8 @@ podTemplate(label: 'jenkins-pipeline',
       stage ('PR: Selenium complete?') {
         // wait for Selenium deployments, if needed
         container('kubectl') {
-          sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
-          sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n selenium --timeout=5m"
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n selenium --timeout=5m"
         }
       }
 
@@ -292,22 +294,24 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       stage ('Create and Push Test Docker Image') {
-        // title: Building Test Docker Image
-        // type: build
-        // image_name: oveits/crochunter-tests
-        // working_directory: ./tests/
-        // dockerfile: Dockerfile
-        // tag: '${{CF_BRANCH_TAG_NORMALIZED}}-${{CF_SHORT_REVISION}}'
-                // build and publish container
-        pipeline.containerBuildPub(
-            dockerfile: config.test_container_repo.dockerfile,
-            host      : config.test_container_repo.host,
-            acct      : acct,
-            repo      : config.test_container_repo.repo,
-            tags      : image_tags_list,
-            auth_id   : config.test_container_repo.jenkins_creds_id,
-            image_scanning: config.test_container_repo.image_scanning
-        )
+        container('docker') {
+          // title: Building Test Docker Image
+          // type: build
+          // image_name: oveits/crochunter-tests
+          // working_directory: ./tests/
+          // dockerfile: Dockerfile
+          // tag: '${{CF_BRANCH_TAG_NORMALIZED}}-${{CF_SHORT_REVISION}}'
+                  // build and publish container
+          pipeline.containerBuildPub(
+              dockerfile: config.test_container_repo.dockerfile,
+              host      : config.test_container_repo.host,
+              acct      : acct,
+              repo      : config.test_container_repo.repo,
+              tags      : image_tags_list,
+              auth_id   : config.test_container_repo.jenkins_creds_id,
+              image_scanning: config.test_container_repo.image_scanning
+          )
+        }
       }
 
       stage ('UI Tests') {
@@ -342,7 +346,7 @@ podTemplate(label: 'jenkins-pipeline',
           println "deleting and purging selenium, if present"
           sh """
             # purge deleted versions of selenium, if present
-            helm list -a | grep '^selenium ' && helm delete --purge selenium || true
+            helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
           """
         }
       }
