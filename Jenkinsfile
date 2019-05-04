@@ -149,6 +149,25 @@ podTemplate(label: 'jenkins-pipeline',
     // compile tag list
     def image_tags_list = pipeline.getMapValues(image_tags_map)
 
+    stage('Deploy Selenium Grid') {
+      // Deploy using Helm chart
+      container('helm') {
+        sh """
+          # purge deleted versions of selenium, if present
+          helm list -a | grep '^selenium ' && helm delete --purge selenium || true
+
+          # upgrade selenium revision. Install, if not present:
+          helm upgrade --install selenium stable/selenium \
+            --set chromeDebug.enabled=true
+
+          # wait for deployments
+          kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m
+          kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m
+        """
+        } 
+
+    }
+
     stage ('compile and test') {
 
       container('golang') {
