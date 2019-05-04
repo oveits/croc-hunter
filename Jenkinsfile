@@ -9,7 +9,7 @@ def pipeline = new io.estrado.Pipeline()
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
-    containerTemplate(
+    // containerTemplate(
     //   name: 'selenium-hub', 
     //   image: 'selenium/hub:latest', 
     //   // resourceRequestCpu: '200m', 
