@@ -206,7 +206,7 @@ podTemplate(label: 'jenkins-pipeline',
 
     }
 
-    // if (env.BRANCH_NAME =~ "PR-*" ) {
+    if (env.BRANCH_NAME =~ "PR-*" ) {
 
       stage('Deploy Selenium Grid') {
         // Deploy using Helm chart
@@ -291,23 +291,23 @@ podTemplate(label: 'jenkins-pipeline',
           )
         }
       }
-    // }
 
-    stage('Remove Selenium Grid Deployment') {
-      // Delete Helm revision
-      container('helm') {
-        // init
-        println "initialzing helm client"
-        sh "helm init"
-        println "checking client/server version"
-        sh "helm version"
-        
-        println "deleting and purging selenium, if present"
-        sh """
-          # purge deleted versions of selenium, if present
-          helm list -a | grep '^selenium ' && helm delete --purge selenium || true
-        """
+      stage('Remove Selenium Grid Deployment') {
+        // Delete Helm revision
+        container('helm') {
+          // init
+          println "initialzing helm client"
+          sh "helm init"
+          println "checking client/server version"
+          sh "helm version"
+          
+          println "deleting and purging selenium, if present"
+          sh """
+            # purge deleted versions of selenium, if present
+            helm list -a | grep '^selenium ' && helm delete --purge selenium || true
+          """
         }
+      }
     }
 
     // deploy only the master branch
