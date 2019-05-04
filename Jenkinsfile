@@ -7,7 +7,7 @@
 
 def pipeline = new io.estrado.Pipeline()
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
-def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLower()
+def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
 def seleniumRelease = 'selenium' // 'selenium-' + uniqueBranchName
 
 podTemplate(label: 'jenkins-pipeline', 
