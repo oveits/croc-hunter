@@ -169,15 +169,13 @@ podTemplate(label: 'jenkins-pipeline',
         """
         }
       
-      // wait for deployments
-      container('kubectl') {
-        sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
-        sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
-      }
+      // // wait for deployments
+      // container('kubectl') {
+      //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
+      //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+      // }
 
     }
-
-    
 
 
     stage ('compile and test') {
@@ -236,20 +234,8 @@ podTemplate(label: 'jenkins-pipeline',
 
     }
 
-    stage('Deploy Selenium Grid') {
-        // Deploy using Helm chart
-        container('helm') {
-          sh """
-            helm upgrade --install selenium stable/selenium \
-              --set chromeDebug.enabled=true
-            kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m
-          """
-          } 
-
-    }
-
     if (env.BRANCH_NAME =~ "PR-*" ) {
-      stage ('deploy to k8s') {
+      stage ('PR: Deploy to k8s') {
         // Deploy using Helm chart
         container('helm') {
                     // Create secret from Jenkins credentials manager
@@ -273,7 +259,14 @@ podTemplate(label: 'jenkins-pipeline',
               "imagePullSecrets.email": "ServicePrincipal@AzureRM",
             ]
           )
-          } 
+          }
+
+          // wait for Selenium deployments, if needed
+          container('kubectl') {
+            sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
+            sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+          }
+
           //  Run helm tests
           if (config.app.test) {
             pipeline.helmTest(
@@ -287,6 +280,23 @@ podTemplate(label: 'jenkins-pipeline',
           )
         }
       }
+    }
+
+    stage('Remove Selenium Grid Deployment') {
+      // Delete Helm revision
+      container('helm') {
+        // init
+        println "initialzing helm client"
+        sh "helm init"
+        println "checking client/server version"
+        sh "helm version"
+        
+        println "deleting and purging selenium, if present"
+        sh """
+          # purge deleted versions of selenium, if present
+          helm list -a | grep '^selenium ' && helm delete --purge selenium || true
+        """
+        }
     }
 
     // deploy only the master branch
