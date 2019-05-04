@@ -165,14 +165,19 @@ podTemplate(label: 'jenkins-pipeline',
           # upgrade selenium revision. Install, if not present:
           helm upgrade --install selenium stable/selenium \
             --set chromeDebug.enabled=true
-
-          # wait for deployments
-          kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m
-          kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m
         """
-        } 
+        }
+      
+      // wait for deployments
+      container('kubectl') {
+        sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
+        sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+      }
 
     }
+
+    
+
 
     stage ('compile and test') {
 
