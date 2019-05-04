@@ -149,34 +149,6 @@ podTemplate(label: 'jenkins-pipeline',
     // compile tag list
     def image_tags_list = pipeline.getMapValues(image_tags_map)
 
-    stage('Deploy Selenium Grid') {
-      // Deploy using Helm chart
-      container('helm') {
-        // init
-        println "initialzing helm client"
-        sh "helm init"
-        println "checking client/server version"
-        sh "helm version"
-
-        sh """
-          # purge deleted versions of selenium, if present
-          helm list -a | grep '^selenium ' && helm delete --purge selenium || true
-
-          # upgrade selenium revision. Install, if not present:
-          helm upgrade --install selenium stable/selenium \
-            --namespace selenium \
-            --set chromeDebug.enabled=true
-        """
-        }
-      
-      // // wait for deployments
-      // container('kubectl') {
-      //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
-      //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
-      // }
-
-    }
-
 
     stage ('compile and test') {
 
@@ -234,8 +206,37 @@ podTemplate(label: 'jenkins-pipeline',
 
     }
 
-    if (env.BRANCH_NAME =~ "PR-*" ) {
-      stage ('PR: Deploy to k8s') {
+    // if (env.BRANCH_NAME =~ "PR-*" ) {
+
+      stage('Deploy Selenium Grid') {
+        // Deploy using Helm chart
+        container('helm') {
+          // init
+          println "initialzing helm client"
+          sh "helm init"
+          println "checking client/server version"
+          sh "helm version"
+
+          sh """
+            # purge deleted versions of selenium, if present
+            helm list -a | grep '^selenium ' && helm delete --purge selenium || true
+
+            # upgrade selenium revision. Install, if not present:
+            helm upgrade --install selenium stable/selenium \
+              --namespace selenium \
+              --set chromeDebug.enabled=true
+          """
+          }
+        
+        // // wait for deployments
+        // container('kubectl') {
+        //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
+        //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+        // }
+
+      }
+
+      stage ('PR: Deploy App to k8s') {
         // Deploy using Helm chart
         container('helm') {
                     // Create secret from Jenkins credentials manager
@@ -260,27 +261,37 @@ podTemplate(label: 'jenkins-pipeline',
             ]
           )
           }
+        }
+      }
 
-          // wait for Selenium deployments, if needed
-          container('kubectl') {
-            sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
-            sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
-          }
+      stage ('Check that Selenium Deployment is complete') {
+        // wait for Selenium deployments, if needed
+        container('kubectl') {
+          sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
+          sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+        }
+      }
 
+      stage ('Run UI Tests') {
+        container('helm') {
           //  Run helm tests
           if (config.app.test) {
             pipeline.helmTest(
               name        : env.BRANCH_NAME.toLowerCase()
             )
           }
+        }
+      }
 
+      stage ('PR: Remove App fromk8s') {
+        container('helm') {
           // delete test deployment
           pipeline.helmDelete(
               name       : env.BRANCH_NAME.toLowerCase()
           )
         }
       }
-    }
+    // }
 
     stage('Remove Selenium Grid Deployment') {
       // Delete Helm revision
