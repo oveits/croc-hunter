@@ -27,7 +27,7 @@
     "jenkins_creds_id": "oveits_docker_hub",
     "repo": "crochunter-test",
     "dockeremail": ".",
-    "dockerfile": "./test/",
+    "dockerfile": "./tests/",
     "image_scanning": false
   },
   "pipeline": {
