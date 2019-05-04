@@ -6,6 +6,7 @@
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
 def pipeline = new io.estrado.Pipeline()
+def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
@@ -208,7 +209,7 @@ podTemplate(label: 'jenkins-pipeline',
 
     if (env.BRANCH_NAME =~ "PR-*" ) {
 
-      stage('Deploy Selenium Grid') {
+      stage('PR: Deploy Selenium') {
         // Deploy using Helm chart
         container('helm') {
           // init
@@ -236,7 +237,7 @@ podTemplate(label: 'jenkins-pipeline',
 
       }
 
-      stage ('PR: Deploy App to k8s') {
+      stage ('PR: Deploy App') {
         // Deploy using Helm chart
         container('helm') {
                     // Create secret from Jenkins credentials manager
@@ -244,8 +245,8 @@ podTemplate(label: 'jenkins-pipeline',
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
           pipeline.helmDeploy(
             dry_run       : false,
-            name          : env.BRANCH_NAME.toLowerCase(),
-            namespace     : env.BRANCH_NAME.toLowerCase(),
+            name          : branchNameNormalized,
+            namespace     : branchNameNormalized,
             chart_dir     : chart_dir,
             set           : [
               "imageTag": image_tags_list.get(0),
@@ -264,7 +265,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage ('Check that Selenium Deployment is complete') {
+      stage ('PR: Selenium complete?') {
         // wait for Selenium deployments, if needed
         container('kubectl') {
           sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
@@ -272,27 +273,38 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage ('Run UI Tests') {
+      stage ('Simple curl Tests') {
         container('helm') {
           //  Run helm tests
           if (config.app.test) {
             pipeline.helmTest(
-              name        : env.BRANCH_NAME.toLowerCase()
+              name        : branchNameNormalized
             )
           }
         }
       }
 
-      stage ('PR: Remove App fromk8s') {
+      stage ('UI Tests') {
+        container('helm') {
+          //  Run helm tests
+          if (config.app.test) {
+            pipeline.helmTest(
+              name        : branchNameNormalized
+            )
+          }
+        }
+      }
+
+      stage ('PR: Remove App') {
         container('helm') {
           // delete test deployment
           pipeline.helmDelete(
-              name       : env.BRANCH_NAME.toLowerCase()
+              name       : branchNameNormalized
           )
         }
       }
 
-      stage('Remove Selenium Grid Deployment') {
+      stage('Remove Selenium') {
         // Delete Helm revision
         container('helm') {
           // init
