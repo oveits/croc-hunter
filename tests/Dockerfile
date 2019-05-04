@@ -9,4 +9,4 @@ RUN apk update && \
     apk add bash && \
     pip install selenium pytest pytest-html
 
-ENTRYPOINT [ "bash", "-c", "/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
