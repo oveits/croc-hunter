@@ -97,7 +97,7 @@ podTemplate(label: 'jenkins-pipeline',
     ),
     containerTemplate(
       name: 'kubectl', 
-      image: 'lachlanevenson/k8s-kubectl:v1.10.7', 
+      image: 'lachlanevenson/k8s-kubectl:v1.14.1', 
       command: 'cat', 
       ttyEnabled: true)
   ],
