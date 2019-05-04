@@ -3,8 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-// @Library('github.com/oveits/jenkins-pipeline@develop')
-@Library('github.com/oveits/jenkins-pipeline@hotfix/0003-helm-upgrade-error-has-no-deployed-releases')
+@Library('github.com/oveits/jenkins-pipeline@develop')
 
 def pipeline = new io.estrado.Pipeline()
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
@@ -290,6 +289,25 @@ podTemplate(label: 'jenkins-pipeline',
             )
           }
         }
+      }
+
+      stage ('Create and Push Test Docker Image') {
+        // title: Building Test Docker Image
+        // type: build
+        // image_name: oveits/crochunter-tests
+        // working_directory: ./tests/
+        // dockerfile: Dockerfile
+        // tag: '${{CF_BRANCH_TAG_NORMALIZED}}-${{CF_SHORT_REVISION}}'
+                // build and publish container
+        pipeline.containerBuildPub(
+            dockerfile: config.test_container_repo.dockerfile,
+            host      : config.test_container_repo.host,
+            acct      : acct,
+            repo      : config.test_container_repo.repo,
+            tags      : image_tags_list,
+            auth_id   : config.test_container_repo.jenkins_creds_id,
+            image_scanning: config.test_container_repo.image_scanning
+        )
       }
 
       stage ('UI Tests') {
