@@ -152,6 +152,12 @@ podTemplate(label: 'jenkins-pipeline',
     stage('Deploy Selenium Grid') {
       // Deploy using Helm chart
       container('helm') {
+        // init
+        println "initialzing helm client"
+        sh "helm init"
+        println "checking client/server version"
+        sh "helm version"
+
         sh """
           # purge deleted versions of selenium, if present
           helm list -a | grep '^selenium ' && helm delete --purge selenium || true
