@@ -10,65 +10,63 @@ def pipeline = new io.estrado.Pipeline()
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
     containerTemplate(
-      name: 'selenium-hub', 
-      image: 'selenium/hub:latest', 
-      // resourceRequestCpu: '200m', 
-      // resourceLimitCpu: '300m', 
-      // resourceRequestMemory: '256Mi', 
-      // resourceLimitMemory: '512Mi',
-      envVars: [
-        // envVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
-        // secretEnvVar(key: 'MYSQL_PASSWORD', secretName: 'mysql-secret', secretKey: 'password'),
-        // ...
-        envVar(key: 'SE_OPTS', value: '-debug'),
-        envVar(key: 'GRID_MAX_SESSION', value: '5')
-      ],
-      ports: [
-        portMapping(name: 'selenium', containerPort: 4444, hostPort: 4444)
-      ]
-    ),
-    containerTemplate(
-      name: 'chrome-node', 
-      image: 'selenium/node-chrome:latest',
-      // resourceRequestCpu: '200m', 
-      // resourceLimitCpu: '300m', 
-      // resourceRequestMemory: '256Mi', 
-      // resourceLimitMemory: '512Mi',
-      command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"',
-      ttyEnabled: true,
-      envVars: [
-        envVar(key: 'HUB_HOST', value: 'selenium-hub'),
-        envVar(key: 'REMOTE_HOST', value: 'http://chrome-node:5555'),
-        envVar(key: 'NODE_MAX_SESSION', value: '5'),
-        envVar(key: 'NODE_MAX_INSTANCES', value: '5')
-      ],
-      ports: [
-        portMapping(name: 'vnc', containerPort: 5900, hostPort: 5900),
-        portMapping(name: 'chrome-node', containerPort: 5555, hostPort: 5555)
-      ]
-    ),
-    containerTemplate(
-      name: 'firefox-node', 
-      image: 'selenium/node-firefox:latest', 
-      // resourceRequestCpu: '200m', 
-      // resourceLimitCpu: '300m', 
-      // resourceRequestMemory: '256Mi', 
-      // resourceLimitMemory: '512Mi',
-      command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"',
-      ttyEnabled: true,
-      envVars: [
-        envVar(key: 'HUB_HOST', value: 'selenium-hub'),
-        envVar(key: 'REMOTE_HOST', value: 'http://firefox-node:5555'),
-        envVar(key: 'NODE_MAX_SESSION', value: '5'),
-        envVar(key: 'NODE_MAX_INSTANCES', value: '5')
-      ],
-      ports: [
-        portMapping(name: 'vnc', containerPort: 5900, hostPort: 5901),
-        portMapping(name: 'firefox-node', containerPort: 5555, hostPort: 5556)
-      ]
-    ),
-/*
-*/
+    //   name: 'selenium-hub', 
+    //   image: 'selenium/hub:latest', 
+    //   // resourceRequestCpu: '200m', 
+    //   // resourceLimitCpu: '300m', 
+    //   // resourceRequestMemory: '256Mi', 
+    //   // resourceLimitMemory: '512Mi',
+    //   envVars: [
+    //     // envVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
+    //     // secretEnvVar(key: 'MYSQL_PASSWORD', secretName: 'mysql-secret', secretKey: 'password'),
+    //     // ...
+    //     envVar(key: 'SE_OPTS', value: '-debug'),
+    //     envVar(key: 'GRID_MAX_SESSION', value: '5')
+    //   ],
+    //   ports: [
+    //     portMapping(name: 'selenium', containerPort: 4444, hostPort: 4444)
+    //   ]
+    // ),
+    // containerTemplate(
+    //   name: 'chrome-node', 
+    //   image: 'selenium/node-chrome:latest',
+    //   // resourceRequestCpu: '200m', 
+    //   // resourceLimitCpu: '300m', 
+    //   // resourceRequestMemory: '256Mi', 
+    //   // resourceLimitMemory: '512Mi',
+    //   command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"',
+    //   ttyEnabled: true,
+    //   envVars: [
+    //     envVar(key: 'HUB_HOST', value: 'selenium-hub'),
+    //     envVar(key: 'REMOTE_HOST', value: 'http://chrome-node:5555'),
+    //     envVar(key: 'NODE_MAX_SESSION', value: '5'),
+    //     envVar(key: 'NODE_MAX_INSTANCES', value: '5')
+    //   ],
+    //   ports: [
+    //     portMapping(name: 'vnc', containerPort: 5900, hostPort: 5900),
+    //     portMapping(name: 'chrome-node', containerPort: 5555, hostPort: 5555)
+    //   ]
+    // ),
+    // containerTemplate(
+    //   name: 'firefox-node', 
+    //   image: 'selenium/node-firefox:latest', 
+    //   // resourceRequestCpu: '200m', 
+    //   // resourceLimitCpu: '300m', 
+    //   // resourceRequestMemory: '256Mi', 
+    //   // resourceLimitMemory: '512Mi',
+    //   command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"',
+    //   ttyEnabled: true,
+    //   envVars: [
+    //     envVar(key: 'HUB_HOST', value: 'selenium-hub'),
+    //     envVar(key: 'REMOTE_HOST', value: 'http://firefox-node:5555'),
+    //     envVar(key: 'NODE_MAX_SESSION', value: '5'),
+    //     envVar(key: 'NODE_MAX_INSTANCES', value: '5')
+    //   ],
+    //   ports: [
+    //     portMapping(name: 'vnc', containerPort: 5900, hostPort: 5901),
+    //     portMapping(name: 'firefox-node', containerPort: 5555, hostPort: 5556)
+    //   ]
+    // ),
     containerTemplate(
       name: 'jnlp', 
       image: 'jenkinsci/jnlp-slave:3.19-1-alpine', 
@@ -204,6 +202,18 @@ podTemplate(label: 'jenkins-pipeline',
             image_scanning: config.container_repo.image_scanning
         )
       }
+
+    }
+
+    stage('Deploy Selenium Grid') {
+        // Deploy using Helm chart
+        container('helm') {
+          sh """
+            helm upgrade --install selenium stable/selenium \
+              --set chromeDebug.enabled=true
+            kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m
+          """
+          } 
 
     }
 
