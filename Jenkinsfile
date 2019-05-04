@@ -3,7 +3,8 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@develop')
+// @Library('github.com/oveits/jenkins-pipeline@develop')
+@Library('github.com/oveits/jenkins-pipeline@hotfix/0003-helm-upgrade-error-has-no-deployed-releases')
 
 def pipeline = new io.estrado.Pipeline()
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
@@ -240,6 +241,13 @@ podTemplate(label: 'jenkins-pipeline',
       stage ('PR: Deploy App') {
         // Deploy using Helm chart
         container('helm') {
+
+          // purge deleted versions of ${branchNameNormalized}, if present
+          sh """
+            # purge deleted versions of ${branchNameNormalized}, if present
+            helm list -a | grep '^${branchNameNormalized} ' && helm delete --purge ${branchNameNormalized} || true
+          """
+
                     // Create secret from Jenkins credentials manager
           withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
