@@ -25,7 +25,7 @@
     "master_acct": "oveits",
     "alt_acct": "oveits",
     "jenkins_creds_id": "oveits_docker_hub",
-    "repo": "crochunter-test",
+    "repo": "crochunter-tests",
     "dockeremail": ".",
     "dockerfile": "./tests/",
     "image_scanning": false
