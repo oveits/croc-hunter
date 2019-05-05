@@ -1,8 +1,8 @@
 #!/bin/bash
 
-[ "$SELENIUM_HUB" == "" ] && export SELENIUM_HUB="http://selenium_hub:4444/wd/hub"
+[ "$SELENIUM_HUB_URL" == "" ] && export SELENIUM_HUB_URL="http://selenium_hub:4444/wd/hub"
 
-echo "SELENIUM_HUB=$SELENIUM_HUB"
+echo "SELENIUM_HUB_URL=$SELENIUM_HUB_URL"
 
 echo "$@"
 exec "$@"

@@ -13,7 +13,7 @@ from selenium.common.exceptions import (
 hostname = os.getenv('INGRESS_HOSTNAME')
 release_name = os.getenv('RELEASE_NAME')
 commit_sha = os.getenv('CF_SHORT_REVISION')
-selenium_hub = os.getenv('SELENIUM_HUB')
+selenium_hub_url = os.getenv('SELENIUM_HUB_URL')
 
 # Give Selenium Hub time to start
 time.sleep(15)  # TODO: figure how to do this better
@@ -22,7 +22,7 @@ time.sleep(15)  # TODO: figure how to do this better
 def browser():
     browser_name = ip = os.getenv('BROWSER')
     browser = webdriver.Remote(
-        command_executor=selenium_hub,
+        command_executor=selenium_hub_url,
         desired_capabilities={'browserName': browser_name},
     )
     yield browser
