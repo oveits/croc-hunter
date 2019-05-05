@@ -328,8 +328,8 @@ podTemplate(label: 'jenkins-pipeline',
               name        : branchNameNormalized
             )
             sh """
-            test_pods=$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
-            namespace=$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
+            test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
+            namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
 
             for test_pod in \$test_pods; do
               echo "Test Pod: \$test_pod"
