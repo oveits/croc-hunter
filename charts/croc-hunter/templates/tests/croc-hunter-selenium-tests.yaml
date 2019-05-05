@@ -9,6 +9,7 @@ spec:
     - name: {{ template "fullname" . }}-web-selenium-test
       image: "oveits/crochunter-tests:PR-6"
       env:
+        # TODO: replace the next two values by dynamic content
         - name: SELENIUM_HUB_URL
           value: "http://dev-node1.vocon-it.com:31881/wd/hub"
         - name: INGRESS_HOSTNAME

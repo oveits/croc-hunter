@@ -327,20 +327,21 @@ podTemplate(label: 'jenkins-pipeline',
             pipeline.helmTest(
               name        : branchNameNormalized
             )
-            sh """
-            test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
-            namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
+            // TODO: install jq in the helm container? Then activate following shell script to log the outcome of the tests:
+            // sh """
+            // test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
+            // namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
 
-            for test_pod in \$test_pods; do
-              echo "Test Pod: \$test_pod"
-              echo "============"
-              echo ""
-              kubectl -n \$namespace logs \$test_pod
-              kubectl -n \$namespace delete pod \$test_pod
-              echo ""
-              echo "============"
-            done
-            """
+            // for test_pod in \$test_pods; do
+            //   echo "Test Pod: \$test_pod"
+            //   echo "============"
+            //   echo ""
+            //   kubectl -n \$namespace logs \$test_pod
+            //   kubectl -n \$namespace delete pod \$test_pod
+            //   echo ""
+            //   echo "============"
+            // done
+            // """
           }
         }
       }

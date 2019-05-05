@@ -58,6 +58,7 @@ def test_confirm_canvas_hud(browser):
     assert element.get_attribute('id') == 'canvasHud'
 
 
+# TODO: uncomment:
 # def test_confirm_release_name(browser):
 #     browser.get("https://{}".format(hostname))
 #     element = browser.find_element(By.XPATH, '//div[@class="details"]')
