@@ -313,7 +313,7 @@ podTemplate(label: 'jenkins-pipeline',
               host      : config.test_container_repo.host,
               acct      : acct,
               repo      : config.test_container_repo.repo,
-              tags      : 'latest',
+              tags      : image_tags_list,
               auth_id   : config.test_container_repo.jenkins_creds_id,
               image_scanning: config.test_container_repo.image_scanning
           )
@@ -328,15 +328,15 @@ podTemplate(label: 'jenkins-pipeline',
               name        : branchNameNormalized
             )
             sh """
-            test_pods=$(helm status ${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
-            namespace=$(helm status ${branchNameNormalized} -o json | jq -r .namespace)
+            test_pods=$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
+            namespace=$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
 
-            for test_pod in $test_pods; do
-              echo "Test Pod: $test_pod"
+            for test_pod in \$test_pods; do
+              echo "Test Pod: \$test_pod"
               echo "============"
               echo ""
-              kubectl -n $namespace logs $test_pod
-              #kubectl -n $namespace delete pod $test_pod
+              kubectl -n \$namespace logs \$test_pod
+              #kubectl -n \$namespace delete pod \$test_pod
               echo ""
               echo "============"
             done
