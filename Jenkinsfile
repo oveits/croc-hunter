@@ -336,7 +336,7 @@ podTemplate(label: 'jenkins-pipeline',
               echo "============"
               echo ""
               kubectl -n \$namespace logs \$test_pod
-              #kubectl -n \$namespace delete pod \$test_pod
+              kubectl -n \$namespace delete pod \$test_pod
               echo ""
               echo "============"
             done
