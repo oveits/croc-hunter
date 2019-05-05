@@ -10,7 +10,8 @@ def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
 def sharedSelenium = true
 def seleniumRelease
-sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease = 'selenium-' + uniqueBranchName
+// sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
+seleniumRelease = 'selenium'
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
