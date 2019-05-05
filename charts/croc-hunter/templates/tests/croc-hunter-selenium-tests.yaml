@@ -14,5 +14,5 @@ spec:
         - name: INGRESS_HOSTNAME
           value: "crochunter.vocon-it.com"
       #command: ["curl"]
-      args: ["retry 3", "retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
+      #args: ["retry 3", "retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
   restartPolicy: Never
