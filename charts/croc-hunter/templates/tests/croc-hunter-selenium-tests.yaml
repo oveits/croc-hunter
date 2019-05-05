@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
     - name: {{ template "fullname" . }}-web-selenium-test
-      image: oveits/crochunter-tests
+      image: "oveits/crochunter-tests:PR-6"
       env:
         - name: SELENIUM_HUB_URL
           value: "http://dev-node1.vocon-it.com:31881/wd/hub"
