@@ -9,8 +9,10 @@ spec:
     - name: {{ template "fullname" . }}-web-selenium-test
       image: oveits/crochunter-tests
       env:
-        - SELENIUM_HUB_URL: "http://dev-node1.vocon-it.com:31881/wd/hub"
-        - INGRESS_HOSTNAME: "crochunter.vocon-it.com"
+        - name: SELENIUM_HUB_URL
+          value: "http://dev-node1.vocon-it.com:31881/wd/hub"
+        - name: INGRESS_HOSTNAME
+          value: "crochunter.vocon-it.com"
       #command: ["curl"]
       args: ["retry 3", "retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
   restartPolicy: Never
