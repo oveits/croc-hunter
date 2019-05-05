@@ -8,7 +8,9 @@
 def pipeline = new io.estrado.Pipeline()
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
-def seleniumRelease = 'selenium' // 'selenium-' + uniqueBranchName
+def sharedSelenium = true
+def seleniumRelease
+sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease = 'selenium-' + uniqueBranchName
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
@@ -220,10 +222,13 @@ podTemplate(label: 'jenkins-pipeline',
           println "checking client/server version"
           sh "helm version"
 
+          if ( !sharedSelenium ) {
+            sh """
+              # purge deleted versions of selenium, if present
+              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+            """
+          }
           sh """
-            # purge deleted versions of selenium, if present
-            helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
-
             # upgrade selenium revision. Install, if not present:
             helm upgrade --install ${seleniumRelease} stable/selenium \
               --namespace selenium \
@@ -293,7 +298,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage ('Create and Push Test Docker Image') {
+      stage ('Create and Push Selenium Test Docker Image') {
         container('docker') {
           // title: Building Test Docker Image
           // type: build
@@ -334,20 +339,22 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('Remove Selenium') {
-        // Delete Helm revision
-        container('helm') {
-          // init
-          println "initialzing helm client"
-          sh "helm init"
-          println "checking client/server version"
-          sh "helm version"
-          
-          println "deleting and purging selenium, if present"
-          sh """
-            # purge deleted versions of selenium, if present
-            helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
-          """
+      if ( !sharedSelenium ) {
+        stage('Remove Selenium') {
+          // Delete Helm revision
+          container('helm') {
+            // init
+            println "initialzing helm client"
+            sh "helm init"
+            println "checking client/server version"
+            sh "helm version"
+            
+            println "deleting and purging selenium, if present"
+            sh """
+              # purge deleted versions of selenium, if present
+              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+            """
+          }
         }
       }
     }
