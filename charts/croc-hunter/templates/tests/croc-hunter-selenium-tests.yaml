@@ -13,7 +13,8 @@ spec:
         - name: SELENIUM_HUB_URL
           value: "http://dev-node1.vocon-it.com:31881/wd/hub"
         - name: INGRESS_HOSTNAME
-          value: "crochunter.vocon-it.com"
+          #value: "crochunter.vocon-it.com"
+          value: "{{ template "fullname" . }}:{{.Values.servicePort}}"
       #command: ["curl"]
       #args: ["retry 3", "retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
   restartPolicy: Never
