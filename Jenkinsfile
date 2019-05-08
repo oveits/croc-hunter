@@ -344,7 +344,7 @@ podTemplate(label: 'jenkins-pipeline',
         container('helm') {
           //  Run helm tests
           if (config.app.test) {
-            sh "helm test ${branchNameNormalized} --set test.seleniumHubUrl="http://dev-node1.vocon-it.com:31881/wd/hub" --cleanup"
+            sh "helm test ${branchNameNormalized} --set test.seleniumHubUrl='http://dev-node1.vocon-it.com:31881/wd/hub' --cleanup"
             pipeline.helmTest(
               name        : branchNameNormalized
             )
