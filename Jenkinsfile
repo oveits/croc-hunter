@@ -284,6 +284,7 @@ podTemplate(label: 'jenkins-pipeline',
               "imagePullSecrets.username": env.USERNAME,
               "imagePullSecrets.password": env.PASSWORD,
               "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+              "test.seleniumHubUrl": 'http://dev-node1.vocon-it.com:31881/wd/hub',
             ]
           )
           }
@@ -334,7 +335,7 @@ podTemplate(label: 'jenkins-pipeline',
         container('helm') {
           //  Run helm tests
           if (config.app.test) {
-            sh "helm test ${branchNameNormalized} --set test.seleniumHubUrl='http://dev-node1.vocon-it.com:31881/wd/hub' --cleanup"
+            sh "helm test ${branchNameNormalized} --cleanup"
             pipeline.helmTest(
               name        : branchNameNormalized
             )
