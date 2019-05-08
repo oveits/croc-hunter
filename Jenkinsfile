@@ -5,27 +5,17 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
+def pipeline = new io.estrado.Pipeline()
+
 def configuration = [
   skipRemoveApp:true
 ]
 
-def setConfiguration(String configuration, String environment, String dValue ){
-  if(configuration != null){
-    return configuration
-  }
-
-  if(environment != null){
-    return environment
-  }
-
-  return dValue
-}
-
 // defaults
-configuration.skipRemoveApp    = setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
+configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
+// configuration.skipRemoveApp    = configuration.skipRemoveApp != null ? configuration.skipRemoveApp : false
 
 
-def pipeline = new io.estrado.Pipeline()
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
 def sharedSelenium = true
