@@ -344,7 +344,7 @@ podTemplate(label: 'jenkins-pipeline',
             // clean from test pods
             sh """
             test_pods=\$(helm status \${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}')
-            namespace=\$(helm status \${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print $2}')
+            namespace=\$(helm status \${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}')
             echo \$test_pods | xargs -n 1 kubectl -n \$namespace delete pod
             """
 
@@ -354,7 +354,7 @@ podTemplate(label: 'jenkins-pipeline',
             // print results and delete pods:
             sh """
             test_pods=\$(helm status \${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}')
-            namespace=\$(helm status \${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print $2}')
+            namespace=\$(helm status \${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}')
             echo \$test_pods | xargs -n 1 kubectl -n \$namespace logs
             echo \$test_pods | xargs -n 1 kubectl -n \$namespace delete pod
             """
