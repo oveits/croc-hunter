@@ -5,6 +5,10 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
+def configuration = [
+  skipRemoveApp:true
+]
+
 def pipeline = new io.estrado.Pipeline()
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
@@ -324,10 +328,11 @@ podTemplate(label: 'jenkins-pipeline',
         container('helm') {
           //  Run helm tests
           if (config.app.test) {
+            sh "helm test --set test.seleniumHubUrl="http://dev-node1.vocon-it.com:31881/wd/hub" ${branchNameNormalized} --cleanup"
             pipeline.helmTest(
               name        : branchNameNormalized
             )
-            // TODO: install jq in the helm container? Then activate following shell script to log the outcome of the tests:
+            // TODO: OV: install jq in the helm container? Then activate following shell script to log the outcome of the tests:
             // sh """
             // test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
             // namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
@@ -346,12 +351,14 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage ('PR: Remove App') {
-        container('helm') {
-          // delete test deployment
-          pipeline.helmDelete(
-              name       : branchNameNormalized
-          )
+      if (configuration.skipRemoveApp == false) {
+        stage ('PR: Remove App') {
+          container('helm') {
+            // delete test deployment
+            pipeline.helmDelete(
+                name       : branchNameNormalized
+            )
+          }
         }
       }
 
