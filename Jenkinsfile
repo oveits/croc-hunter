@@ -12,8 +12,8 @@ def configuration = [
 ]
 
 // defaults
-configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
-// configuration.skipRemoveApp    = configuration.skipRemoveApp != null ? configuration.skipRemoveApp : false
+// configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
+configuration.skipRemoveApp    = configuration.skipRemoveApp != null ? configuration.skipRemoveApp : false
 
 
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
