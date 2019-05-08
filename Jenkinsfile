@@ -332,13 +332,36 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       stage ('UI Tests') {
+        
+        // sh """
+        //   test_pods=\$(helm status pr-6 -o json | jq -r .info.status.last_test_suite_run.results[].name)
+        //   echo \$test_pods | xargs -n 1 kubectl -n \$namespace delete pod
+        //   """
         container('helm') {
           //  Run helm tests
+
           if (config.app.test) {
-            sh "helm test ${branchNameNormalized} --cleanup"
-            pipeline.helmTest(
-              name        : branchNameNormalized
-            )
+            // clean from test pods
+            sh """
+            test_pods=\$(helm status \${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}')
+            namespace=\$(helm status \${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print $2}')
+            echo \$test_pods | xargs -n 1 kubectl -n \$namespace delete pod
+            """
+
+            // run tests
+            sh "helm test ${branchNameNormalized}"
+
+            // print results and delete pods:
+            sh """
+            test_pods=\$(helm status \${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}')
+            namespace=\$(helm status \${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print $2}')
+            echo \$test_pods | xargs -n 1 kubectl -n \$namespace logs
+            echo \$test_pods | xargs -n 1 kubectl -n \$namespace delete pod
+            """
+
+            // pipeline.helmTest(
+            //   name        : branchNameNormalized
+            // )
             // TODO: OV: install jq in the helm container? Then activate following shell script to log the outcome of the tests:
             // sh """
             // test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
@@ -356,6 +379,9 @@ podTemplate(label: 'jenkins-pipeline',
             // """
           }
         }
+        // container('kubectl'){
+        //     sh "kubectl logs ${branchNameNormalized}-croc-hunter-web-selenium-test --namespace ${branchNameNormalized}"
+        // }
       }
 
       if (configuration.skipRemoveApp == false) {
