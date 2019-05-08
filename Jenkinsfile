@@ -9,8 +9,21 @@ def configuration = [
   skipRemoveApp:true
 ]
 
+def setConfiguration(String configuration, String environment, String dValue ){
+  if(configuration != null){
+    return configuration
+  }
+
+  if(environment != null){
+    return environment
+  }
+
+  return dValue
+}
+
 // defaults
-configuration.skipRemoveApp == null ? configuration.skipRemoveApp = false
+configuration.skipRemoveApp    = setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
+
 
 def pipeline = new io.estrado.Pipeline()
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
