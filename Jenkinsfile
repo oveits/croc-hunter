@@ -346,8 +346,8 @@ podTemplate(label: 'jenkins-pipeline',
             def test_pods_before
             def namespace_before
             container('helm') {
-              test_pods_before = sh script: "helm status \${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'", returnStdout: true
-              namespace_before = sh script: "helm status \${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'", returnStdout: true
+              test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'", returnStdout: true
+              namespace_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'", returnStdout: true
             }
             container('kubectl') {
               sh "echo ${test_pods_before} | xargs -n 1 kubectl -n ${namespace_before} delete pod"
@@ -362,8 +362,8 @@ podTemplate(label: 'jenkins-pipeline',
             def test_pods_after
             def namespace_after
             container('helm') {
-              test_pods_after = sh script: "helm status \${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'", returnStdout: true
-              namespace_after = sh script: "helm status \${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'", returnStdout: true
+              test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'", returnStdout: true
+              namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'", returnStdout: true
             }
             container('kubectl') {
               sh "echo ${test_pods_after} | xargs -n 1 kubectl -n ${namespace_after} logs"
