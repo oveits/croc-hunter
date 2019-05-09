@@ -436,16 +436,18 @@ podTemplate(label: 'jenkins-pipeline',
               // def helmStatus = readJSON text: helmStatusText
               // echo "helmStatus.namespace = " + helmStatus.namespace
               // echo "helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name } = " + helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name }
-              sh "helm status ${branchNameNormalized} -o yaml"
-              sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' || true"
-              sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}' || true"
-              sh "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true"
-              sh "NS=\$(helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true) && echo -n \$NS"
+            // sh "helm status ${branchNameNormalized} -o yaml"
+            // sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' || true"
+            // sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}' || true"
+            // sh "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true"
+            // sh "NS=\$(helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true) && echo -n \$NS"
 
               // with jq: test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
-              test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}' || true", returnStdout: true
+              // test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}' || true", returnStdout: true
+              test_pods_before = sh script: "helm status ${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name || true", returnStdout: true
               // with jq: namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
-              namespace_before = sh script: "NS=\$(helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true) && echo -n \$NS", returnStdout: true
+              // namespace_before = sh script: "NS=\$(helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true) && echo -n \$NS", returnStdout: true
+              namespace_before = sh script: "helm status ${branchNameNormalized} -o json | jq -r .namespace || true", returnStdout: true
               
               // debug
               echo "test_pods_before = ___${test_pods_before}___"
@@ -453,8 +455,8 @@ podTemplate(label: 'jenkins-pipeline',
             }
             container('kubectl') {
               // debug
-              echo "test_pods_before = ___${test_pods_before}___"
-              echo "namespace_before = ___${namespace_before}___"
+              echo "container_kubectl: test_pods_before = ___${test_pods_before}___"
+              echo "container_kubectl: namespace_before = ___${namespace_before}___"
               sh "echo 'xargs -n 1 kubectl -n ${namespace_before} delete pod'"
               if (test_pods_before != null && test_pods_before != "") {
                 // debug
@@ -473,117 +475,27 @@ podTemplate(label: 'jenkins-pipeline',
             def test_pods_after
             def namespace_after
             container('helm') {
-              test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}'", returnStdout: true
-              namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'", returnStdout: true
+              // test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}'", returnStdout: true
+              test_pods_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name || true", returnStdout: true
+
+              // namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'", returnStdout: true
+              namespace_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .namespace || true", returnStdout: true
+                          // debug
+              echo "test_pods_after = ___${test_pods_after}___"
+              echo "namespace_after = ___${namespace_after}___"
+
             }
             container('kubectl') {
-              sh "echo ${test_pods_after} | xargs -n 1 kubectl -n ${namespace_after} logs"
-              sh "echo ${test_pods_after} | xargs -n 1 kubectl -n ${namespace_after} delete pod"
+              // debug
+              echo "container_kubectl: test_pods_after = ___${test_pods_after}___"
+              echo "container_kubectl: namespace_after = ___${namespace_after}___"
+
+              sh "echo -n '${test_pods_after}' | xargs -n 1 kubectl -n ${namespace_after} logs"
+              sh "echo -n '${test_pods_after}' | xargs -n 1 kubectl -n ${namespace_after} delete pod"
             }
-
-            // pipeline.helmTest(
-            //   name        : branchNameNormalized
-            // )
-            // TODO: OV: install jq in the helm container? Then activate following shell script to log the outcome of the tests:
-            // sh """
-            // test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
-            // namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
-
-            // for test_pod in \$test_pods; do
-            //   echo "Test Pod: \$test_pod"
-            //   echo "============"
-            //   echo ""
-            //   kubectl -n \$namespace logs \$test_pod
-            //   kubectl -n \$namespace delete pod \$test_pod
-            //   echo ""
-            //   echo "============"
-            // done
-            // """
           }
-        // }
-        // container('kubectl'){
-        //     sh "kubectl logs ${branchNameNormalized}-croc-hunter-web-selenium-test --namespace ${branchNameNormalized}"
-        // }
       }
 
-      // stage ('UI Tests') {
-        
-      //   // sh """
-      //   //   test_pods=\$(helm status pr-6 -o json | jq -r .info.status.last_test_suite_run.results[].name)
-      //   //   echo \$test_pods | xargs -n 1 kubectl -n \$namespace delete pod
-      //   //   """
-      //   def test_pods
-      //   // container('helm') {
-      //     //  Run helm tests
-
-      //     if (config.app.test) {
-      //       // clean from test pods
-      //       def test_pods_before
-      //       def namespace_before
-      //       container('helm') {
-      //         // debug
-      //         sh "helm status ${branchNameNormalized} -o yaml"
-      //         sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' || true"
-      //         sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}' || true"
-
-      //         test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}' || true", returnStdout: true
-      //         namespace_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'  || true", returnStdout: true
-              
-      //         // debug
-      //         echo "test_pods_before = ___${test_pods_before}___"
-      //         echo "namespace_before = ___${namespace_before}___"
-      //       }
-      //       container('kubectl') {
-      //         // debug
-      //         echo "test_pods_before = ___${test_pods_before}___"
-      //         echo "namespace_before = ___${namespace_before}___"
-      //         sh "echo 'xargs -n 1 kubectl -n ${namespace_before} delete pod'"
-      //         sh "echo ${test_pods_before} | xargs -n 1 echo kubectl -n ${namespace_before} delete pod"
-
-      //         sh "echo ${test_pods_before} | xargs -n 1 kubectl -n ${namespace_before} delete pod"
-      //       }
-
-      //       // run tests
-      //       container('helm') {
-      //         sh "helm test ${branchNameNormalized}"
-      //       }
-
-      //       // print results and delete pods:
-      //       def test_pods_after
-      //       def namespace_after
-      //       container('helm') {
-      //         test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'", returnStdout: true
-      //         namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'", returnStdout: true
-      //       }
-      //       container('kubectl') {
-      //         sh "echo ${test_pods_after} | xargs -n 1 kubectl -n ${namespace_after} logs"
-      //         sh "echo ${test_pods_after} | xargs -n 1 kubectl -n ${namespace_after} delete pod"
-      //       }
-
-      //       // pipeline.helmTest(
-      //       //   name        : branchNameNormalized
-      //       // )
-      //       // TODO: OV: install jq in the helm container? Then activate following shell script to log the outcome of the tests:
-      //       // sh """
-      //       // test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
-      //       // namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
-
-      //       // for test_pod in \$test_pods; do
-      //       //   echo "Test Pod: \$test_pod"
-      //       //   echo "============"
-      //       //   echo ""
-      //       //   kubectl -n \$namespace logs \$test_pod
-      //       //   kubectl -n \$namespace delete pod \$test_pod
-      //       //   echo ""
-      //       //   echo "============"
-      //       // done
-      //       // """
-      //     }
-      //   // }
-      //   // container('kubectl'){
-      //   //     sh "kubectl logs ${branchNameNormalized}-croc-hunter-web-selenium-test --namespace ${branchNameNormalized}"
-      //   // }
-      // }
 
       if (configuration.skipRemoveApp == false) {
         stage ('PR: Remove App') {
