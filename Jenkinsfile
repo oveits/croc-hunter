@@ -348,11 +348,11 @@ podTemplate(label: 'jenkins-pipeline',
             container('helm') {
               // debug
               sh "helm status ${branchNameNormalized} -o yaml"
-              sh "helm status ${branchNameNormalized} -o yaml | grep ' name:'"
-              sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'"
+              sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' || true"
+              sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}' || true"
 
-              test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'", returnStdout: true
-              namespace_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'", returnStdout: true
+              test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}' || true", returnStdout: true
+              namespace_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'  || true", returnStdout: true
               
               // debug
               echo "test_pods_before = ___${test_pods_before}___"
