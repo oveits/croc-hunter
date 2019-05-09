@@ -249,6 +249,13 @@ podTemplate(label: 'jenkins-pipeline',
       //   // }
       // }
 
+            container('helm') {
+              // debug
+              def helmStatusText = sh "helm status pr-6 -o json"
+              def helmStatus = readJSON text: helmStatusText
+              echo "helmStatus.namespace = " + helmStatus.namespace
+              echo "helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name } = " + helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name }
+            }
 
     stage ('compile and test') {
 
@@ -431,6 +438,10 @@ podTemplate(label: 'jenkins-pipeline',
             def namespace_before
             container('helm') {
               // debug
+              // def helmStatusText = sh "helm status ${branchNameNormalized} -o json"
+              // def helmStatus = readJSON text: helmStatusText
+              // echo "helmStatus.namespace = " + helmStatus.namespace
+              // echo "helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name } = " + helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name }
               sh "helm status ${branchNameNormalized} -o yaml"
               sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' || true"
               sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}' || true"
