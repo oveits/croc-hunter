@@ -199,9 +199,9 @@ podTemplate(label: 'jenkins-pipeline',
               echo "test_pods_before = ___${test_pods_before}___"
               echo "namespace_before = ___${namespace_before}___"
               sh "echo 'xargs -n 1 kubectl -n ${namespace_before} delete pod'"
-              sh "echo ${test_pods_before} | xargs -n 1 echo kubectl -n ${namespace_before} delete pod"
+              sh "[ \"${test_pods_before}\" != \"\" ] && echo -n '${test_pods_before}' | xargs -n 1 echo kubectl -n ${namespace_before} delete pod"
 
-              sh "echo ${test_pods_before} | xargs -n 1 kubectl -n ${namespace_before} delete pod"
+              sh "[ \"${test_pods_before}\" != \"\" ] && echo -n '${test_pods_before}' | xargs -n 1 kubectl -n ${namespace_before} delete pod"
             }
 
             // run tests
