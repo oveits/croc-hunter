@@ -379,7 +379,7 @@ podTemplate(label: 'jenkins-pipeline',
               "imagePullSecrets.username": env.USERNAME,
               "imagePullSecrets.password": env.PASSWORD,
               "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-              "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub:4444",
+              "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub:4444/wd/hub",
               // "test.seleniumHubUrl": 'http://dev-node1.vocon-it.com:31881/wd/hub',
             ]
           )
