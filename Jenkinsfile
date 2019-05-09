@@ -346,10 +346,25 @@ podTemplate(label: 'jenkins-pipeline',
             def test_pods_before
             def namespace_before
             container('helm') {
+              // debug
+              sh "helm status ${branchNameNormalized} -o yaml"
+              sh "helm status ${branchNameNormalized} -o yaml | grep ' name:'"
+              sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'"
+
               test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'", returnStdout: true
               namespace_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'", returnStdout: true
+              
+              // debug
+              echo "test_pods_before = ___${test_pods_before}___"
+              echo "namespace_before = ___${namespace_before}___"
             }
             container('kubectl') {
+              // debug
+              echo "test_pods_before = ___${test_pods_before}___"
+              echo "namespace_before = ___${namespace_before}___"
+              sh "echo 'xargs -n 1 kubectl -n ${namespace_before} delete pod'"
+              sh "echo ${test_pods_before} | xargs -n 1 echo kubectl -n ${namespace_before} delete pod"
+
               sh "echo ${test_pods_before} | xargs -n 1 kubectl -n ${namespace_before} delete pod"
             }
 
