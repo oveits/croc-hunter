@@ -219,6 +219,32 @@ podTemplate(label: 'jenkins-pipeline',
               sh "echo ${test_pods_after} | xargs -n 1 kubectl -n ${namespace_after} delete pod"
             }
 
+            // pipeline.helmTest(
+            //   name        : branchNameNormalized
+            // )
+            // TODO: OV: install jq in the helm container? Then activate following shell script to log the outcome of the tests:
+            // sh """
+            // test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
+            // namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
+
+            // for test_pod in \$test_pods; do
+            //   echo "Test Pod: \$test_pod"
+            //   echo "============"
+            //   echo ""
+            //   kubectl -n \$namespace logs \$test_pod
+            //   kubectl -n \$namespace delete pod \$test_pod
+            //   echo ""
+            //   echo "============"
+            // done
+            // """
+          }
+        // }
+        // container('kubectl'){
+        //     sh "kubectl logs ${branchNameNormalized}-croc-hunter-web-selenium-test --namespace ${branchNameNormalized}"
+        // }
+      }
+
+
     stage ('compile and test') {
 
       container('golang') {
