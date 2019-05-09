@@ -185,10 +185,10 @@ podTemplate(label: 'jenkins-pipeline',
               sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' || true"
               sh "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}' || true"
               sh "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true"
-              
+              sh "NS=\$(helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true) && echo -n $NS"
 
               test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}' || true", returnStdout: true
-              namespace_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true", returnStdout: true
+              namespace_before = sh script: "NS=\$(helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true) && echo -n $NS", returnStdout: true
               
               // debug
               echo "test_pods_before = ___${test_pods_before}___"
@@ -213,8 +213,8 @@ podTemplate(label: 'jenkins-pipeline',
             def test_pods_after
             def namespace_after
             container('helm') {
-              test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]*' '{print \$3}'", returnStdout: true
-              namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F'[: ]*' '{print \$2}'", returnStdout: true
+              test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}'", returnStdout: true
+              namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'", returnStdout: true
             }
             container('kubectl') {
               sh "echo ${test_pods_after} | xargs -n 1 kubectl -n ${namespace_after} logs"
