@@ -20,6 +20,7 @@ def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
 def sharedSelenium = true
 def seleniumRelease
+def seleniumNamespace = branchNameNormalized
 // sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
 seleniumRelease = branchNameNormalized + '-selenium'
 
@@ -336,7 +337,7 @@ podTemplate(label: 'jenkins-pipeline',
           sh """
             # upgrade selenium revision. Install, if not present:
             helm upgrade --install ${seleniumRelease} stable/selenium \
-              --namespace ${branchNameNormalized} \
+              --namespace ${seleniumNamespace} \
               --set chromeDebug.enabled=true \
           """
           }
@@ -388,8 +389,8 @@ podTemplate(label: 'jenkins-pipeline',
       stage ('PR: Selenium complete?') {
         // wait for Selenium deployments, if needed
         container('kubectl') {
-          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n selenium --timeout=5m"
-          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n selenium --timeout=5m"
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
         }
       }
 
