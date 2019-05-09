@@ -21,7 +21,7 @@ def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.
 def sharedSelenium = true
 def seleniumRelease
 // sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
-seleniumRelease = 'selenium'
+seleniumRelease = branchNameNormalized + '-selenium'
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
@@ -249,14 +249,14 @@ podTemplate(label: 'jenkins-pipeline',
       //   // }
       // }
 
-            container('helm') {
-              // debug
-              def helmStatusText = sh "helm status pr-6 -o json" as String
-              echo helmStatusText
-              def helmStatus = readJSON text: helmStatusText
-              echo "helmStatus.namespace = " + helmStatus.namespace
-              echo "helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name } = " + helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name }
-            }
+            // container('helm') {
+            //   // debug
+            //   def helmStatusText = sh "helm status pr-6 -o json" as String
+            //   echo helmStatusText
+            //   def helmStatus = readJSON text: helmStatusText
+            //   echo "helmStatus.namespace = " + helmStatus.namespace
+            //   echo "helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name } = " + helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name }
+            // }
 
     stage ('compile and test') {
 
@@ -331,11 +331,13 @@ podTemplate(label: 'jenkins-pipeline',
               helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
             """
           }
+
+          // always:
           sh """
             # upgrade selenium revision. Install, if not present:
             helm upgrade --install ${seleniumRelease} stable/selenium \
-              --namespace selenium \
-              --set chromeDebug.enabled=true
+              --namespace ${branchNameNormalized} \
+              --set chromeDebug.enabled=true \
           """
           }
         
