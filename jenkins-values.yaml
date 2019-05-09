@@ -26,6 +26,7 @@ Master:
       - blueocean:1.8.2
       - artifactory:2.16.2
       - tfs:5.139.2
+      - pipeline-utility-steps:2.3.0
 
   ScriptApproval:
     - "method groovy.json.JsonSlurperClassic parseText java.lang.String"
