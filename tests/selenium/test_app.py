@@ -30,42 +30,42 @@ def browser():
 
 
 def test_confirm_title(browser):
-    browser.get("https://{}".format(hostname))
+    browser.get("http://{}".format(hostname))
     assert "Croc Hunter" in browser.title
 
 
 def test_confirm_canvas_bg(browser):
-    browser.get("https://{}".format(hostname))
+    browser.get("http://{}".format(hostname))
     element = browser.find_element(By.ID, 'canvasBg')
     assert element.get_attribute('id') == 'canvasBg'
 
 
 def test_confirm_canvas_enemy(browser):
-    browser.get("https://{}".format(hostname))
+    browser.get("http://{}".format(hostname))
     element = browser.find_element(By.ID, 'canvasEnemy')
     assert element.get_attribute('id') == 'canvasEnemy'
 
 
 def test_confirm_canvas_jet(browser):
-    browser.get("https://{}".format(hostname))
+    browser.get("http://{}".format(hostname))
     element = browser.find_element(By.ID, 'canvasJet')
     assert element.get_attribute('id') == 'canvasJet'
 
 
 def test_confirm_canvas_hud(browser):
-    browser.get("https://{}".format(hostname))
+    browser.get("http://{}".format(hostname))
     element = browser.find_element(By.ID, 'canvasHud')
     assert element.get_attribute('id') == 'canvasHud'
 
 
 # TODO: uncomment:
 # def test_confirm_release_name(browser):
-#     browser.get("https://{}".format(hostname))
+#     browser.get("http://{}".format(hostname))
 #     element = browser.find_element(By.XPATH, '//div[@class="details"]')
 #     assert release_name in element.text
 
 
 # def test_confirm_commit_sha(browser):
-#     browser.get("https://{}".format(hostname))
+#     browser.get("http://{}".format(hostname))
 #     element = browser.find_element(By.XPATH, '//div[@class="details"]')
 #     assert commit_sha in element.text
