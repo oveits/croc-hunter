@@ -408,13 +408,6 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage ('Create and Push Selenium Test Docker Image') {
         container('docker') {
-          // title: Building Test Docker Image
-          // type: build
-          // image_name: oveits/crochunter-tests
-          // working_directory: ./tests/
-          // dockerfile: Dockerfile
-          // tag: '${{CF_BRANCH_TAG_NORMALIZED}}-${{CF_SHORT_REVISION}}'
-                  // build and publish container
           pipeline.containerBuildPub(
               dockerfile: config.test_container_repo.dockerfile,
               host      : config.test_container_repo.host,
@@ -429,16 +422,12 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage ('UI Tests') {
         
-        // sh """
-        //   test_pods=\$(helm status pr-6 -o json | jq -r .info.status.last_test_suite_run.results[].name)
-        //   echo \$test_pods | xargs -n 1 kubectl -n \$namespace delete pod
-        //   """
         def test_pods
         // container('helm') {
           //  Run helm tests
 
           if (config.app.test) {
-            // clean from test pods
+            // clean old test pods
             def test_pods_before
             def namespace_before
             container('helm') {
@@ -453,7 +442,9 @@ podTemplate(label: 'jenkins-pipeline',
               sh "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true"
               sh "NS=\$(helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true) && echo -n \$NS"
 
+              // with jq: test_pods=\$(helm status \${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name)
               test_pods_before = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}' || true", returnStdout: true
+              // with jq: namespace=\$(helm status \${branchNameNormalized} -o json | jq -r .namespace)
               namespace_before = sh script: "NS=\$(helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'  || true) && echo -n \$NS", returnStdout: true
               
               // debug
