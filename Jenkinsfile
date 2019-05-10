@@ -207,58 +207,58 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
-    // stage ('publish docker image') {
+    stage ('publish docker image') {
 
-    //   container('docker') {
+      container('docker') {
 
-    //     // build and publish container
-    //     pipeline.containerBuildPub(
-    //         dockerfile: config.container_repo.dockerfile,
-    //         host      : config.container_repo.host,
-    //         acct      : acct,
-    //         repo      : config.container_repo.repo,
-    //         tags      : image_tags_list,
-    //         auth_id   : config.container_repo.jenkins_creds_id,
-    //         image_scanning: config.container_repo.image_scanning
-    //     )
-    //   }
+        // build and publish container
+        pipeline.containerBuildPub(
+            dockerfile: config.container_repo.dockerfile,
+            host      : config.container_repo.host,
+            acct      : acct,
+            repo      : config.container_repo.repo,
+            tags      : image_tags_list,
+            auth_id   : config.container_repo.jenkins_creds_id,
+            image_scanning: config.container_repo.image_scanning
+        )
+      }
 
-    // }
+    }
 
-    // if (env.BRANCH_NAME =~ "PR-*" ) {
+    if (env.BRANCH_NAME =~ "PR-*" ) {
 
-    //   stage('PR: Deploy Selenium') {
-    //     // Deploy using Helm chart
-    //     container('helm') {
-    //       // init
-    //       println "initialzing helm client"
-    //       sh "helm init"
-    //       println "checking client/server version"
-    //       sh "helm version"
+      stage('PR: Deploy Selenium') {
+        // Deploy using Helm chart
+        container('helm') {
+          // init
+          println "initialzing helm client"
+          sh "helm init"
+          println "checking client/server version"
+          sh "helm version"
 
-    //       if ( !sharedSelenium ) {
-    //         sh """
-    //           # purge deleted versions of selenium, if present
-    //           helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
-    //         """
-    //       }
+          if ( !sharedSelenium ) {
+            sh """
+              # purge deleted versions of selenium, if present
+              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+            """
+          }
 
-    //       // always:
-    //       sh """
-    //         # upgrade selenium revision. Install, if not present:
-    //         helm upgrade --install ${seleniumRelease} stable/selenium \
-    //           --namespace ${seleniumNamespace} \
-    //           --set chromeDebug.enabled=true \
-    //       """
-    //       }
+          // always:
+          sh """
+            # upgrade selenium revision. Install, if not present:
+            helm upgrade --install ${seleniumRelease} stable/selenium \
+              --namespace ${seleniumNamespace} \
+              --set chromeDebug.enabled=true \
+          """
+          }
         
-    //     // // wait for deployments
-    //     // container('kubectl') {
-    //     //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
-    //     //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
-    //     // }
+        // // wait for deployments
+        // container('kubectl') {
+        //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
+        //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+        // }
 
-    //   }
+      }
 
     //   stage ('PR: Deploy App') {
     //     // Deploy using Helm chart
@@ -475,6 +475,6 @@ podTemplate(label: 'jenkins-pipeline',
     //       }
     //     }
     //   }
-    // }
+    }
   }
 }
