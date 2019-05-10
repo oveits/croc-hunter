@@ -256,6 +256,7 @@ podTemplate(label: 'jenkins-pipeline',
               echo helmStatusText
               def helmStatus = readJSON text: helmStatusText
               echo "helmStatus.namespace = " + helmStatus.namespace
+              echo "helmStatus.info.status.last_test_suite_run.results[] = " + helmStatus.info.status.last_test_suite_run.results[]
               echo "helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name } = " + helmStatus.info.status.last_test_suite_run.results[].each{ result -> result.name }
             }
 
