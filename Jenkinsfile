@@ -260,64 +260,64 @@ podTemplate(label: 'jenkins-pipeline',
 
       }
 
-    //   stage ('PR: Deploy App') {
-    //     // Deploy using Helm chart
-    //     container('helm') {
+      stage ('PR: Deploy App') {
+        // Deploy using Helm chart
+        container('helm') {
 
-    //       // purge deleted versions of ${branchNameNormalized}, if present
-    //       sh """
-    //         # purge deleted versions of ${branchNameNormalized}, if present
-    //         helm list -a | grep '^${branchNameNormalized} ' && helm delete --purge ${branchNameNormalized} || true
-    //       """
+          // purge deleted versions of ${branchNameNormalized}, if present
+          sh """
+            # purge deleted versions of ${branchNameNormalized}, if present
+            helm list -a | grep '^${branchNameNormalized} ' && helm delete --purge ${branchNameNormalized} || true
+          """
 
-    //                 // Create secret from Jenkins credentials manager
-    //       withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
-    //                     usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-    //       pipeline.helmDeploy(
-    //         dry_run       : false,
-    //         name          : branchNameNormalized,
-    //         namespace     : branchNameNormalized,
-    //         chart_dir     : chart_dir,
-    //         set           : [
-    //           "imageTag": image_tags_list.get(0),
-    //           "replicas": config.app.replicas,
-    //           "cpu": config.app.cpu,
-    //           "memory": config.app.memory,
-    //           "ingress.hostname": config.app.hostname,
-    //           "imagePullSecrets.name": config.k8s_secret.name,
-    //           "imagePullSecrets.repository": config.container_repo.host,
-    //           "imagePullSecrets.username": env.USERNAME,
-    //           "imagePullSecrets.password": env.PASSWORD,
-    //           "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-    //           "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub:4444/wd/hub",
-    //           // "test.seleniumHubUrl": 'http://dev-node1.vocon-it.com:31881/wd/hub',
-    //         ]
-    //       )
-    //       }
-    //     }
-    //   }
+                    // Create secret from Jenkins credentials manager
+          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
+                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+          pipeline.helmDeploy(
+            dry_run       : false,
+            name          : branchNameNormalized,
+            namespace     : branchNameNormalized,
+            chart_dir     : chart_dir,
+            set           : [
+              "imageTag": image_tags_list.get(0),
+              "replicas": config.app.replicas,
+              "cpu": config.app.cpu,
+              "memory": config.app.memory,
+              "ingress.hostname": config.app.hostname,
+              "imagePullSecrets.name": config.k8s_secret.name,
+              "imagePullSecrets.repository": config.container_repo.host,
+              "imagePullSecrets.username": env.USERNAME,
+              "imagePullSecrets.password": env.PASSWORD,
+              "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+              "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub:4444/wd/hub",
+              // "test.seleniumHubUrl": 'http://dev-node1.vocon-it.com:31881/wd/hub',
+            ]
+          )
+          }
+        }
+      }
 
-    //   stage ('PR: Selenium complete?') {
-    //     // wait for Selenium deployments, if needed
-    //     container('kubectl') {
-    //       sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
-    //       sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
-    //     }
-    //   }
+      stage ('PR: Selenium complete?') {
+        // wait for Selenium deployments, if needed
+        container('kubectl') {
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
+        }
+      }
 
-    //   stage ('PR: Create and Push Selenium Test Docker Image') {
-    //     container('docker') {
-    //       pipeline.containerBuildPub(
-    //           dockerfile: config.test_container_repo.dockerfile,
-    //           host      : config.test_container_repo.host,
-    //           acct      : acct,
-    //           repo      : config.test_container_repo.repo,
-    //           tags      : image_tags_list,
-    //           auth_id   : config.test_container_repo.jenkins_creds_id,
-    //           image_scanning: config.test_container_repo.image_scanning
-    //       )
-    //     }
-    //   }
+      stage ('PR: Create and Push Selenium Test Docker Image') {
+        container('docker') {
+          pipeline.containerBuildPub(
+              dockerfile: config.test_container_repo.dockerfile,
+              host      : config.test_container_repo.host,
+              acct      : acct,
+              repo      : config.test_container_repo.repo,
+              tags      : image_tags_list,
+              auth_id   : config.test_container_repo.jenkins_creds_id,
+              image_scanning: config.test_container_repo.image_scanning
+          )
+        }
+      }
 
     //   stage('PR: get helm status'){
     //     container('helm') {
