@@ -319,36 +319,36 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-    //   stage('PR: get helm status'){
-    //     container('helm') {
-    //       // get helm status
-    //       def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
-    //       echo helmStatusText
-    //       helmStatus = readJSON text: helmStatusText
+      stage('PR: get helm status'){
+        container('helm') {
+          // get helm status
+          def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+          echo helmStatusText
+          helmStatus = readJSON text: helmStatusText
 
-    //       // echo helmStatus
-    //     }
-    //   }
+          // echo helmStatus
+        }
+      }
 
-    //   stage('PR: delete old UI test containers, if needed'){
+      stage('PR: delete old UI test containers, if needed'){
         
-    //     // get helm status
-    //     container('helm') {
-    //       def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
-    //       echo helmStatusText
-    //       helmStatus = readJSON text: helmStatusText
+        // get helm status
+        container('helm') {
+          def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+          echo helmStatusText
+          helmStatus = readJSON text: helmStatusText
           
-    //       // echo helmStatus
-    //     }
+          // echo helmStatus
+        }
 
-    //     // delete old test pods, if needed
-    //     container('kubectl'){
+        // delete old test pods, if needed
+        container('kubectl'){
           
-    //       helmStatus.info.status.last_test_suite_run.results.each { result ->
-    //         sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name}"
-    //       }
-    //     }
-    //   }
+          helmStatus.info.status.last_test_suite_run.results.each { result ->
+            sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name}"
+          }
+        }
+      }
  
     //   stage ('PR: UI Tests') {
     //     // depends on: stage('delete old UI test containers, if needed')
