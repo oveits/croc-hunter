@@ -322,7 +322,7 @@ podTemplate(label: 'jenkins-pipeline',
       stage('PR: get helm status'){
         container('helm') {
           // get helm status
-          def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
           echo helmStatusText
           helmStatus = readJSON text: helmStatusText
 
@@ -334,7 +334,7 @@ podTemplate(label: 'jenkins-pipeline',
         
         // get helm status
         container('helm') {
-          def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
           echo helmStatusText
           helmStatus = readJSON text: helmStatusText
           
@@ -366,7 +366,7 @@ podTemplate(label: 'jenkins-pipeline',
           // read helm status
           container('helm') {
 
-            helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+            helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
             echo helmStatusText
             helmStatus = readJSON text: helmStatusText
             
