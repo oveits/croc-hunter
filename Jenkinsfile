@@ -207,274 +207,274 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
-    stage ('publish docker image') {
+    // stage ('publish docker image') {
 
-      container('docker') {
+    //   container('docker') {
 
-        // build and publish container
-        pipeline.containerBuildPub(
-            dockerfile: config.container_repo.dockerfile,
-            host      : config.container_repo.host,
-            acct      : acct,
-            repo      : config.container_repo.repo,
-            tags      : image_tags_list,
-            auth_id   : config.container_repo.jenkins_creds_id,
-            image_scanning: config.container_repo.image_scanning
-        )
-      }
+    //     // build and publish container
+    //     pipeline.containerBuildPub(
+    //         dockerfile: config.container_repo.dockerfile,
+    //         host      : config.container_repo.host,
+    //         acct      : acct,
+    //         repo      : config.container_repo.repo,
+    //         tags      : image_tags_list,
+    //         auth_id   : config.container_repo.jenkins_creds_id,
+    //         image_scanning: config.container_repo.image_scanning
+    //     )
+    //   }
 
-    }
+    // }
 
-    if (env.BRANCH_NAME =~ "PR-*" ) {
+    // if (env.BRANCH_NAME =~ "PR-*" ) {
 
-      stage('PR: Deploy Selenium') {
-        // Deploy using Helm chart
-        container('helm') {
-          // init
-          println "initialzing helm client"
-          sh "helm init"
-          println "checking client/server version"
-          sh "helm version"
+    //   stage('PR: Deploy Selenium') {
+    //     // Deploy using Helm chart
+    //     container('helm') {
+    //       // init
+    //       println "initialzing helm client"
+    //       sh "helm init"
+    //       println "checking client/server version"
+    //       sh "helm version"
 
-          if ( !sharedSelenium ) {
-            sh """
-              # purge deleted versions of selenium, if present
-              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
-            """
-          }
+    //       if ( !sharedSelenium ) {
+    //         sh """
+    //           # purge deleted versions of selenium, if present
+    //           helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+    //         """
+    //       }
 
-          // always:
-          sh """
-            # upgrade selenium revision. Install, if not present:
-            helm upgrade --install ${seleniumRelease} stable/selenium \
-              --namespace ${seleniumNamespace} \
-              --set chromeDebug.enabled=true \
-          """
-          }
+    //       // always:
+    //       sh """
+    //         # upgrade selenium revision. Install, if not present:
+    //         helm upgrade --install ${seleniumRelease} stable/selenium \
+    //           --namespace ${seleniumNamespace} \
+    //           --set chromeDebug.enabled=true \
+    //       """
+    //       }
         
-        // // wait for deployments
-        // container('kubectl') {
-        //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
-        //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
-        // }
+    //     // // wait for deployments
+    //     // container('kubectl') {
+    //     //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
+    //     //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+    //     // }
 
-      }
+    //   }
 
-      stage ('PR: Deploy App') {
-        // Deploy using Helm chart
-        container('helm') {
+    //   stage ('PR: Deploy App') {
+    //     // Deploy using Helm chart
+    //     container('helm') {
 
-          // purge deleted versions of ${branchNameNormalized}, if present
-          sh """
-            # purge deleted versions of ${branchNameNormalized}, if present
-            helm list -a | grep '^${branchNameNormalized} ' && helm delete --purge ${branchNameNormalized} || true
-          """
+    //       // purge deleted versions of ${branchNameNormalized}, if present
+    //       sh """
+    //         # purge deleted versions of ${branchNameNormalized}, if present
+    //         helm list -a | grep '^${branchNameNormalized} ' && helm delete --purge ${branchNameNormalized} || true
+    //       """
 
-                    // Create secret from Jenkins credentials manager
-          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
-                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-          pipeline.helmDeploy(
-            dry_run       : false,
-            name          : branchNameNormalized,
-            namespace     : branchNameNormalized,
-            chart_dir     : chart_dir,
-            set           : [
-              "imageTag": image_tags_list.get(0),
-              "replicas": config.app.replicas,
-              "cpu": config.app.cpu,
-              "memory": config.app.memory,
-              "ingress.hostname": config.app.hostname,
-              "imagePullSecrets.name": config.k8s_secret.name,
-              "imagePullSecrets.repository": config.container_repo.host,
-              "imagePullSecrets.username": env.USERNAME,
-              "imagePullSecrets.password": env.PASSWORD,
-              "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-              "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub:4444/wd/hub",
-              // "test.seleniumHubUrl": 'http://dev-node1.vocon-it.com:31881/wd/hub',
-            ]
-          )
-          }
-        }
-      }
+    //                 // Create secret from Jenkins credentials manager
+    //       withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
+    //                     usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+    //       pipeline.helmDeploy(
+    //         dry_run       : false,
+    //         name          : branchNameNormalized,
+    //         namespace     : branchNameNormalized,
+    //         chart_dir     : chart_dir,
+    //         set           : [
+    //           "imageTag": image_tags_list.get(0),
+    //           "replicas": config.app.replicas,
+    //           "cpu": config.app.cpu,
+    //           "memory": config.app.memory,
+    //           "ingress.hostname": config.app.hostname,
+    //           "imagePullSecrets.name": config.k8s_secret.name,
+    //           "imagePullSecrets.repository": config.container_repo.host,
+    //           "imagePullSecrets.username": env.USERNAME,
+    //           "imagePullSecrets.password": env.PASSWORD,
+    //           "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+    //           "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub:4444/wd/hub",
+    //           // "test.seleniumHubUrl": 'http://dev-node1.vocon-it.com:31881/wd/hub',
+    //         ]
+    //       )
+    //       }
+    //     }
+    //   }
 
-      stage ('PR: Selenium complete?') {
-        // wait for Selenium deployments, if needed
-        container('kubectl') {
-          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
-          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
-        }
-      }
+    //   stage ('PR: Selenium complete?') {
+    //     // wait for Selenium deployments, if needed
+    //     container('kubectl') {
+    //       sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
+    //       sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
+    //     }
+    //   }
 
-      stage ('PR: Create and Push Selenium Test Docker Image') {
-        container('docker') {
-          pipeline.containerBuildPub(
-              dockerfile: config.test_container_repo.dockerfile,
-              host      : config.test_container_repo.host,
-              acct      : acct,
-              repo      : config.test_container_repo.repo,
-              tags      : image_tags_list,
-              auth_id   : config.test_container_repo.jenkins_creds_id,
-              image_scanning: config.test_container_repo.image_scanning
-          )
-        }
-      }
+    //   stage ('PR: Create and Push Selenium Test Docker Image') {
+    //     container('docker') {
+    //       pipeline.containerBuildPub(
+    //           dockerfile: config.test_container_repo.dockerfile,
+    //           host      : config.test_container_repo.host,
+    //           acct      : acct,
+    //           repo      : config.test_container_repo.repo,
+    //           tags      : image_tags_list,
+    //           auth_id   : config.test_container_repo.jenkins_creds_id,
+    //           image_scanning: config.test_container_repo.image_scanning
+    //       )
+    //     }
+    //   }
 
-      stage('PR: get helm status'){
-        container('helm') {
-          // get helm status
-          def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
-          echo helmStatusText
-          helmStatus = readJSON text: helmStatusText
+    //   stage('PR: get helm status'){
+    //     container('helm') {
+    //       // get helm status
+    //       def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+    //       echo helmStatusText
+    //       helmStatus = readJSON text: helmStatusText
 
-          // echo helmStatus
-        }
-      }
+    //       // echo helmStatus
+    //     }
+    //   }
 
-      stage('PR: delete old UI test containers, if needed'){
+    //   stage('PR: delete old UI test containers, if needed'){
         
-        // get helm status
-        container('helm') {
-          def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
-          echo helmStatusText
-          helmStatus = readJSON text: helmStatusText
+    //     // get helm status
+    //     container('helm') {
+    //       def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+    //       echo helmStatusText
+    //       helmStatus = readJSON text: helmStatusText
           
-          // echo helmStatus
-        }
+    //       // echo helmStatus
+    //     }
 
-        // delete old test pods, if needed
-        container('kubectl'){
+    //     // delete old test pods, if needed
+    //     container('kubectl'){
           
-          helmStatus.info.status.last_test_suite_run.results.each { result ->
-            sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name}"
-          }
-        }
-      }
+    //       helmStatus.info.status.last_test_suite_run.results.each { result ->
+    //         sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name}"
+    //       }
+    //     }
+    //   }
  
-      stage ('PR: UI Tests') {
-        // depends on: stage('delete old UI test containers, if needed')
+    //   stage ('PR: UI Tests') {
+    //     // depends on: stage('delete old UI test containers, if needed')
         
-        def test_pods
-          //  Run helm tests
+    //     def test_pods
+    //       //  Run helm tests
 
-        if (config.app.test) {
+    //     if (config.app.test) {
 
-          // run tests
-          container('helm') {
-            sh "helm test ${branchNameNormalized}"
-          }
+    //       // run tests
+    //       container('helm') {
+    //         sh "helm test ${branchNameNormalized}"
+    //       }
 
-          // read helm status
-          container('helm') {
+    //       // read helm status
+    //       container('helm') {
 
-            helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
-            echo helmStatusText
-            helmStatus = readJSON text: helmStatusText
+    //         helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+    //         echo helmStatusText
+    //         helmStatus = readJSON text: helmStatusText
             
-            // // test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}'", returnStdout: true
-            // test_pods_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name || true", returnStdout: true
+    //         // // test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}'", returnStdout: true
+    //         // test_pods_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name || true", returnStdout: true
 
-            // // namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'", returnStdout: true
-            // namespace_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .namespace || true", returnStdout: true
-            //             // debug
-            // echo "test_pods_after = ___${test_pods_after}___"
-            // echo "namespace_after = ___${namespace_after}___"
+    //         // // namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'", returnStdout: true
+    //         // namespace_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .namespace || true", returnStdout: true
+    //         //             // debug
+    //         // echo "test_pods_after = ___${test_pods_after}___"
+    //         // echo "namespace_after = ___${namespace_after}___"
 
-          }
+    //       }
 
-          // show logs of test pods:
-          if(configuration.showHelmTestLogs){}
-            container('kubectl') {
+    //       // show logs of test pods:
+    //       if(configuration.showHelmTestLogs){}
+    //         container('kubectl') {
 
-              helmStatus.info.status.last_test_suite_run.results.each { result ->
-                sh "kubectl -n ${helmStatus.namespace} logs pod ${result.name}"
-              }
-            }
-          }
+    //           helmStatus.info.status.last_test_suite_run.results.each { result ->
+    //             sh "kubectl -n ${helmStatus.namespace} logs pod ${result.name}"
+    //           }
+    //         }
+    //       }
 
-          // delete test pods
-          container('kubectl') {
+    //       // delete test pods
+    //       container('kubectl') {
             
-            helmStatus.info.status.last_test_suite_run.results.each { result ->
-              sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name}"
-            }
-            // debug
-            // echo "container_kubectl: test_pods_after = ___${test_pods_after}___"
-            // echo "container_kubectl: namespace_after = ___${namespace_after}___"
+    //         helmStatus.info.status.last_test_suite_run.results.each { result ->
+    //           sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name}"
+    //         }
+    //         // debug
+    //         // echo "container_kubectl: test_pods_after = ___${test_pods_after}___"
+    //         // echo "container_kubectl: namespace_after = ___${namespace_after}___"
 
-            // sh "echo -n '${test_pods_after}' | xargs -n 1 kubectl -n ${namespace_after} logs"
-            // sh "echo -n '${test_pods_after}' | xargs -n 1 kubectl -n ${namespace_after} delete pod"
-          }
-        }
-      }
+    //         // sh "echo -n '${test_pods_after}' | xargs -n 1 kubectl -n ${namespace_after} logs"
+    //         // sh "echo -n '${test_pods_after}' | xargs -n 1 kubectl -n ${namespace_after} delete pod"
+    //       }
+    //     }
+    //   }
 
 
-      if (configuration.skipRemoveApp == false) {
-        stage ('PR: Remove App') {
-          container('helm') {
-            // delete test deployment
-            pipeline.helmDelete(
-                name       : branchNameNormalized
-            )
-          }
-        }
-      }
+    //   if (configuration.skipRemoveApp == false) {
+    //     stage ('PR: Remove App') {
+    //       container('helm') {
+    //         // delete test deployment
+    //         pipeline.helmDelete(
+    //             name       : branchNameNormalized
+    //         )
+    //       }
+    //     }
+    //   }
 
-      if ( !sharedSelenium ) {
-        stage('Remove Selenium') {
-          // Delete Helm revision
-          container('helm') {
-            // init
-            println "initialzing helm client"
-            sh "helm init"
-            println "checking client/server version"
-            sh "helm version"
+    //   if ( !sharedSelenium ) {
+    //     stage('Remove Selenium') {
+    //       // Delete Helm revision
+    //       container('helm') {
+    //         // init
+    //         println "initialzing helm client"
+    //         sh "helm init"
+    //         println "checking client/server version"
+    //         sh "helm version"
             
-            println "deleting and purging selenium, if present"
-            sh """
-              # purge deleted versions of selenium, if present
-              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
-            """
-          }
-        }
-      }
-    }
+    //         println "deleting and purging selenium, if present"
+    //         sh """
+    //           # purge deleted versions of selenium, if present
+    //           helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+    //         """
+    //       }
+    //     }
+    //   }
+    // }
 
-    // deploy only the master branch
-    if (env.BRANCH_NAME == 'master') {
-      stage ('deploy to k8s') {
-          // Deploy using Helm chart
-        container('helm') {
-                    // Create secret from Jenkins credentials manager
-          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
-                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-          pipeline.helmDeploy(
-            dry_run       : false,
-            name          : config.app.name,
-            namespace     : config.app.name,
-            chart_dir     : chart_dir,
-            set           : [
-              "imageTag": image_tags_list.get(0),
-              "replicas": config.app.replicas,
-              "cpu": config.app.cpu,
-              "memory": config.app.memory,
-              "ingress.hostname": config.app.hostname,
-              "imagePullSecrets.name": config.k8s_secret.name,
-              "imagePullSecrets.repository": config.container_repo.host,
-              "imagePullSecrets.username": env.USERNAME,
-              "imagePullSecrets.password": env.PASSWORD,
-              "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-            ]
-          )
+    // // deploy only the master branch
+    // if (env.BRANCH_NAME == 'master') {
+    //   stage ('deploy to k8s') {
+    //       // Deploy using Helm chart
+    //     container('helm') {
+    //                 // Create secret from Jenkins credentials manager
+    //       withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
+    //                     usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+    //       pipeline.helmDeploy(
+    //         dry_run       : false,
+    //         name          : config.app.name,
+    //         namespace     : config.app.name,
+    //         chart_dir     : chart_dir,
+    //         set           : [
+    //           "imageTag": image_tags_list.get(0),
+    //           "replicas": config.app.replicas,
+    //           "cpu": config.app.cpu,
+    //           "memory": config.app.memory,
+    //           "ingress.hostname": config.app.hostname,
+    //           "imagePullSecrets.name": config.k8s_secret.name,
+    //           "imagePullSecrets.repository": config.container_repo.host,
+    //           "imagePullSecrets.username": env.USERNAME,
+    //           "imagePullSecrets.password": env.PASSWORD,
+    //           "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+    //         ]
+    //       )
           
-            //  Run helm tests
-            if (config.app.test) {
-              pipeline.helmTest(
-                name          : config.app.name
-              )
-            }
-          }
-        }
-      }
-    }
+    //         //  Run helm tests
+    //         if (config.app.test) {
+    //           pipeline.helmTest(
+    //             name          : config.app.name
+    //           )
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
   }
 }
