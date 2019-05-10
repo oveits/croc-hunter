@@ -252,10 +252,10 @@ podTemplate(label: 'jenkins-pipeline',
 
             container('helm') {
               // debug
-              // def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
-              // echo helmStatusText
-              // def helmStatus = readJSON text: helmStatusText
-              def helmStatus = readJSON text: sh script: "helm status pr-6 -o json", returnStdout: true
+              def helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+              echo helmStatusText
+              def helmStatus = readJSON text: helmStatusText
+
               echo "helmStatus.namespace = " + helmStatus.namespace
               echo "helmStatus.info.status.last_test_suite_run.results = " + helmStatus.info.status.last_test_suite_run.results
               echo "helmStatus.info.status.last_test_suite_run.results.each{ result -> result.name } = " + helmStatus.info.status.last_test_suite_run.results.each{ result -> result.name }
@@ -487,7 +487,9 @@ podTemplate(label: 'jenkins-pipeline',
             container('helm') {
 
               // read new helm status
-              helmStatus = readJSON text: sh script: "helm status pr-6 -o json", returnStdout: true
+              helmStatusText = sh script: "helm status pr-6 -o json", returnStdout: true
+              echo helmStatusText
+              helmStatus = readJSON text: helmStatusText
               
               // // test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}'", returnStdout: true
               // test_pods_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name || true", returnStdout: true
