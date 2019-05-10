@@ -345,7 +345,7 @@ podTemplate(label: 'jenkins-pipeline',
         container('kubectl'){
           
           helmStatus.info.status.last_test_suite_run.results.each { result ->
-            sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name}"
+            sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
           }
         }
       }
@@ -395,7 +395,7 @@ podTemplate(label: 'jenkins-pipeline',
           container('kubectl') {
             
             helmStatus.info.status.last_test_suite_run.results.each { result ->
-              sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name}"
+              sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
             }
             // debug
             // echo "container_kubectl: test_pods_after = ___${test_pods_after}___"
