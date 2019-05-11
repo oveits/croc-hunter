@@ -260,28 +260,33 @@ podTemplate(label: 'jenkins-pipeline',
 
 
       stage('DEBUG: get helm status AFTER Clean App'){
-        // @Params: branchNameNormalized
-        // def helmStatus // local shadow
-        def helmStatusText  = ""
         container('helm') {
+          helmStatus = pipeline.helmStatus(
+            name    : branchNameNormalized
+          )
+        }
+        // // @Params: branchNameNormalized
+        // // def helmStatus // local shadow
+        // def helmStatusText  = ""
+        // container('helm') {
           
-          // get helm status
-          helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
-          echo helmStatusText
-          if(helmStatusText != null && helmStatusText != ""){
-            helmStatus = readJSON text: helmStatusText
-          }
+        //   // get helm status
+        //   helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
+        //   echo helmStatusText
+        //   if(helmStatusText != null && helmStatusText != ""){
+        //     helmStatus = readJSON text: helmStatusText
+        //   }
 
-          // echo helmStatus
-        }
+        //   // echo helmStatus
+        // }
 
-        if(helmStatusText != null && helmStatusText != ""){
-          container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all || true"
-          }
-        }
-        // branchNameNormalized
-        container('kubectl'){
+        // if(helmStatusText != null && helmStatusText != ""){
+        //   container('kubectl'){
+        //     sh "kubectl -n ${helmStatus.namespace} get all || true"
+        //   }
+        // }
+        // // branchNameNormalized
+        container('kubectl') {
           sh "kubectl -n ${branchNameNormalized} get all || true"
         }
       }
@@ -324,26 +329,31 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       stage('DEBUG: get helm status AFTER Deploy App'){
-        // @Params: branchNameNormalized
-        // def helmStatus // local shadow
-        def helmStatusText  = ""
         container('helm') {
+          helmStatus = pipeline.helmStatus(
+            name    : branchNameNormalized
+          )
+        }        
+        // // @Params: branchNameNormalized
+        // // def helmStatus // local shadow
+        // def helmStatusText  = ""
+        // container('helm') {
           
-          // get helm status
-          helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
-          echo helmStatusText
-          if(helmStatusText != null && helmStatusText != ""){
-            helmStatus = readJSON text: helmStatusText
-          }
+        //   // get helm status
+        //   helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
+        //   echo helmStatusText
+        //   if(helmStatusText != null && helmStatusText != ""){
+        //     helmStatus = readJSON text: helmStatusText
+        //   }
 
-          // echo helmStatus
-        }
+        //   // echo helmStatus
+        // }
 
-        if(helmStatusText != null && helmStatusText != ""){
-          container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all || true"
-          }
-        }
+        // if(helmStatusText != null && helmStatusText != ""){
+        //   container('kubectl'){
+        //     sh "kubectl -n ${helmStatus.namespace} get all || true"
+        //   }
+        // }
         // branchNameNormalized
         container('kubectl'){
           sh "kubectl -n ${branchNameNormalized} get all || true"
@@ -389,15 +399,19 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       stage('PR: delete old UI test containers, if needed (helm status + kubectl way)'){
-        
-        // get helm status
         container('helm') {
-          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
-          echo helmStatusText
-          helmStatus = readJSON text: helmStatusText
+          helmStatus = pipeline.helmStatus(
+            name    : branchNameNormalized
+          )
+        }        
+        // // get helm status
+        // container('helm') {
+        //   def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
+        //   echo helmStatusText
+        //   helmStatus = readJSON text: helmStatusText
           
-          // echo helmStatus
-        }
+        //   // echo helmStatus
+        // }
 
         // delete old test pods, if needed
         container('kubectl') {
@@ -410,28 +424,33 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('DEBUG: get helm status AFTER delete old UI test containers (old way)'){
-        // @Params: branchNameNormalized
-        // def helmStatus // local shadow
-        def helmStatusText  = ""
+      stage('DEBUG: get helm status AFTER delete old UI test containers (old way)') {
         container('helm') {
+          helmStatus = pipeline.helmStatus(
+            name    : branchNameNormalized
+          )
+        }        
+        // // @Params: branchNameNormalized
+        // // def helmStatus // local shadow
+        // def helmStatusText  = ""
+        // container('helm') {
           
-          // get helm status
-          helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
-          echo helmStatusText
-          if(helmStatusText != null && helmStatusText != ""){
-            helmStatus = readJSON text: helmStatusText
-          }
+        //   // get helm status
+        //   helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
+        //   echo helmStatusText
+        //   if(helmStatusText != null && helmStatusText != ""){
+        //     helmStatus = readJSON text: helmStatusText
+        //   }
 
-          // echo helmStatus
-        }
+        //   // echo helmStatus
+        // }
 
-        if(helmStatusText != null && helmStatusText != ""){
-          container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all || true"
-          }
-        }
-        // branchNameNormalized
+        // if(helmStatusText != null && helmStatusText != ""){
+        //   container('kubectl'){
+        //     sh "kubectl -n ${helmStatus.namespace} get all || true"
+        //   }
+        // }
+        // // branchNameNormalized
         container('kubectl'){
           sh "kubectl -n ${branchNameNormalized} get all || true"
         }
@@ -444,28 +463,33 @@ podTemplate(label: 'jenkins-pipeline',
         // kubectl -n pr-7 get pods | grep 'Completed' | awk '{print $1}' | xargs -n 1 echo kubectl -n pr-7 delete pod
       }
 
-      stage('DEBUG: get helm status AFTER delete old UI test containers (new way)'){
-        // @Params: branchNameNormalized
-        // def helmStatus // local shadow
-        def helmStatusText  = ""
+      stage('DEBUG: get helm status AFTER delete old UI test containers (new way)') {
         container('helm') {
+          helmStatus = pipeline.helmStatus(
+            name    : branchNameNormalized
+          )
+        }        
+        // // @Params: branchNameNormalized
+        // // def helmStatus // local shadow
+        // def helmStatusText  = ""
+        // container('helm') {
           
-          // get helm status
-          helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
-          echo helmStatusText
-          if(helmStatusText != null && helmStatusText != ""){
-            helmStatus = readJSON text: helmStatusText
-          }
+        //   // get helm status
+        //   helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
+        //   echo helmStatusText
+        //   if(helmStatusText != null && helmStatusText != ""){
+        //     helmStatus = readJSON text: helmStatusText
+        //   }
 
-          // echo helmStatus
-        }
+        //   // echo helmStatus
+        // }
 
-        if(helmStatusText != null && helmStatusText != ""){
-          container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all || true"
-          }
-        }
-        // branchNameNormalized
+        // if(helmStatusText != null && helmStatusText != ""){
+        //   container('kubectl'){
+        //     sh "kubectl -n ${helmStatus.namespace} get all || true"
+        //   }
+        // }
+        // // branchNameNormalized
         container('kubectl'){
           sh "kubectl -n ${branchNameNormalized} get all || true"
         }
@@ -486,21 +510,26 @@ podTemplate(label: 'jenkins-pipeline',
 
           // read helm status
           container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }          
+          // container('helm') {
 
-            helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
-            echo helmStatusText
-            helmStatus = readJSON text: helmStatusText
+          //   helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
+          //   echo helmStatusText
+          //   helmStatus = readJSON text: helmStatusText
             
-            // // test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}'", returnStdout: true
-            // test_pods_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name || true", returnStdout: true
+          //   // // test_pods_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep ' name:' | awk -F'[: ]+' '{print \$3}'", returnStdout: true
+          //   // test_pods_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .info.status.last_test_suite_run.results[].name || true", returnStdout: true
 
-            // // namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'", returnStdout: true
-            // namespace_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .namespace || true", returnStdout: true
-            //             // debug
-            // echo "test_pods_after = ___${test_pods_after}___"
-            // echo "namespace_after = ___${namespace_after}___"
+          //   // // namespace_after = sh script: "helm status ${branchNameNormalized} -o yaml | grep 'namespace:' | awk -F': ' '{print \$2}'", returnStdout: true
+          //   // namespace_after = sh script: "helm status ${branchNameNormalized} -o json | jq -r .namespace || true", returnStdout: true
+          //   //             // debug
+          //   // echo "test_pods_after = ___${test_pods_after}___"
+          //   // echo "namespace_after = ___${namespace_after}___"
 
-          }
+          // }
 
           // show logs of test pods:
           if(configuration.showHelmTestLogs){
