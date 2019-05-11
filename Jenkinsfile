@@ -260,6 +260,18 @@ podTemplate(label: 'jenkins-pipeline',
 
       }
 
+      // OV DEBUG
+      stage('DEBUG: get helm status before delete and re-creation'){
+        container('helm') {
+          // get helm status
+          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
+          echo helmStatusText
+          helmStatus = readJSON text: helmStatusText
+
+          // echo helmStatus
+        }
+      }
+
       stage ('PR: Deploy App') {
         // Deploy using Helm chart
         container('helm') {
@@ -294,6 +306,17 @@ podTemplate(label: 'jenkins-pipeline',
             ]
           )
           }
+        }
+      }
+
+      stage('DEBUG: get helm status after delete and re-creation'){
+        container('helm') {
+          // get helm status
+          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
+          echo helmStatusText
+          helmStatus = readJSON text: helmStatusText
+
+          // echo helmStatus
         }
       }
 
