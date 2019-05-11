@@ -76,16 +76,25 @@ podTemplate(label: 'jenkins-pipeline',
 
   node ('jenkins-pipeline') {
 
+    def pwd = pwd()
+    def chart_dir = "${pwd}/charts/croc-hunter"
+    // following vars are defined in stage 'Prepare and SCM' and are used in subsequent stages:
+    def inputFile
+    def config
+    def acct
+    def image_tags_map
+    def image_tags_list 
+
     stage('Prepare and SCM') {
 
-      def pwd = pwd()
-      def chart_dir = "${pwd}/charts/croc-hunter"
+      // def pwd = pwd()
+      // def chart_dir = "${pwd}/charts/croc-hunter"
 
       checkout scm
 
       // read in required jenkins workflow config values
-      def inputFile = readFile('Jenkinsfile.json')
-      def config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+      inputFile = readFile('Jenkinsfile.json')
+      config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
       println "pipeline config ==> ${config}"
 
       // continue only if pipeline enabled
@@ -111,13 +120,13 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      def acct = pipeline.getContainerRepoAcct(config)
+      acct = pipeline.getContainerRepoAcct(config)
 
       // tag image with version, and branch-commit_id
-      def image_tags_map = pipeline.getContainerTags(config)
+      image_tags_map = pipeline.getContainerTags(config)
 
       // compile tag list
-      def image_tags_list = pipeline.getMapValues(image_tags_map)
+      image_tags_list = pipeline.getMapValues(image_tags_map)
     }
 
     stage ('compile and test') {
