@@ -272,7 +272,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
 
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all"
+          sh "kubectl -n ${helmStatus.namespace} get all"
         }
       }
 
@@ -289,17 +289,17 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       stage('DEBUG: get helm status'){
-        container('helm') {
-          // get helm status
-          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
-          echo helmStatusText
-          helmStatus = readJSON text: helmStatusText
+        // container('helm') {
+        //   // get helm status
+        //   def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
+        //   echo helmStatusText
+        //   helmStatus = readJSON text: helmStatusText
 
-          // echo helmStatus
-        }
+        //   // echo helmStatus
+        // }
 
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all"
+          sh "kubectl -n ${helmStatus.namespace} get all"
         }
       }
 
@@ -341,6 +341,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       stage('DEBUG: get helm status'){
+        // @Params: branchNameNormalized
         container('helm') {
           // get helm status
           def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
@@ -351,7 +352,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
 
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all"
+          sh "kubectl -n ${helmStatus.namespace} get all"
         }
       }
 
@@ -385,6 +386,11 @@ podTemplate(label: 'jenkins-pipeline',
           helmStatus = readJSON text: helmStatusText
 
           // echo helmStatus
+        }
+
+        // print all resources in namespace:
+        container('kubectl'){
+          sh "kubectl -n ${helmStatus.namespace} get all"
         }
       }
 
