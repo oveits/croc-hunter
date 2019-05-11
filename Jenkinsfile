@@ -549,7 +549,7 @@ podTemplate(label: 'jenkins-pipeline',
 
               if(helmStatus.info.status.last_test_suite_run != null) {
                   helmStatus.info.status.last_test_suite_run.results.each { result ->
-                  sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+                  sh "kubectl -n ${helmStatus.namespace} logs ${result.name} || true"
                 }
               }
             }
