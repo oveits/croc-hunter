@@ -261,7 +261,34 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       // OV DEBUG
-      stage('DEBUG: get helm status before delete and re-creation'){
+      stage('DEBUG: get helm status'){
+        container('helm') {
+          // get helm status
+          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
+          echo helmStatusText
+          helmStatus = readJSON text: helmStatusText
+
+          // echo helmStatus
+        }
+
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get all"
+        }
+      }
+
+      stage('Clean App'){
+        // Deploy using Helm chart
+        container('helm') {
+
+          // purge deleted versions of ${branchNameNormalized}, if present
+          sh """
+            # purge deleted versions of ${branchNameNormalized}, if present
+            helm list -a | grep '^${branchNameNormalized} ' && helm delete --purge ${branchNameNormalized} || true
+          """
+        }
+      }
+
+      stage('DEBUG: get helm status'){
         container('helm') {
           // get helm status
           def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
@@ -313,7 +340,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('DEBUG: get helm status after delete and re-creation'){
+      stage('DEBUG: get helm status'){
         container('helm') {
           // get helm status
           def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
