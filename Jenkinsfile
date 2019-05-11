@@ -14,8 +14,8 @@ def pipeline = new io.estrado.Pipeline()
 // ]
 
 def configuration = {
-  skipRemoveApp: true,
-  showHelmTestLogs: true
+  skipRemoveApp:true,
+  showHelmTestLogs:true
 }
 
 // defaults
