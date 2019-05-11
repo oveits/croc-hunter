@@ -417,7 +417,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('PR: delete old UI test containers, if needed'){
+      stage('PR: delete old UI test containers, if needed (helm status + kubectl way)'){
         
         // get helm status
         container('helm') {
@@ -429,7 +429,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
 
         // delete old test pods, if needed
-        container('kubectl'){
+        container('kubectl') {
           
           if(helmStatus.info.status.last_test_suite_run != null) {
               helmStatus.info.status.last_test_suite_run.results.each { result ->
@@ -437,6 +437,11 @@ podTemplate(label: 'jenkins-pipeline',
             }
           }
         }
+      }
+
+      stage('PR: delete old UI test containers (kubectl way of deleting all completed PODs)') {
+        // kubectl -n pr-7 get pods | grep 'Completed' | awk '{print $1}' | xargs -n 1 echo kubectl -n pr-7 delete pod
+        sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
       }
  
       stage ('PR: UI Tests') {
