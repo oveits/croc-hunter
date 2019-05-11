@@ -35,64 +35,6 @@ def helmStatus
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
-    // containerTemplate(
-    //   name: 'selenium-hub', 
-    //   image: 'selenium/hub:latest', 
-    //   // resourceRequestCpu: '200m', 
-    //   // resourceLimitCpu: '300m', 
-    //   // resourceRequestMemory: '256Mi', 
-    //   // resourceLimitMemory: '512Mi',
-    //   envVars: [
-    //     // envVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
-    //     // secretEnvVar(key: 'MYSQL_PASSWORD', secretName: 'mysql-secret', secretKey: 'password'),
-    //     // ...
-    //     envVar(key: 'SE_OPTS', value: '-debug'),
-    //     envVar(key: 'GRID_MAX_SESSION', value: '5')
-    //   ],
-    //   ports: [
-    //     portMapping(name: 'selenium', containerPort: 4444, hostPort: 4444)
-    //   ]
-    // ),
-    // containerTemplate(
-    //   name: 'chrome-node', 
-    //   image: 'selenium/node-chrome:latest',
-    //   // resourceRequestCpu: '200m', 
-    //   // resourceLimitCpu: '300m', 
-    //   // resourceRequestMemory: '256Mi', 
-    //   // resourceLimitMemory: '512Mi',
-    //   command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"',
-    //   ttyEnabled: true,
-    //   envVars: [
-    //     envVar(key: 'HUB_HOST', value: 'selenium-hub'),
-    //     envVar(key: 'REMOTE_HOST', value: 'http://chrome-node:5555'),
-    //     envVar(key: 'NODE_MAX_SESSION', value: '5'),
-    //     envVar(key: 'NODE_MAX_INSTANCES', value: '5')
-    //   ],
-    //   ports: [
-    //     portMapping(name: 'vnc', containerPort: 5900, hostPort: 5900),
-    //     portMapping(name: 'chrome-node', containerPort: 5555, hostPort: 5555)
-    //   ]
-    // ),
-    // containerTemplate(
-    //   name: 'firefox-node', 
-    //   image: 'selenium/node-firefox:latest', 
-    //   // resourceRequestCpu: '200m', 
-    //   // resourceLimitCpu: '300m', 
-    //   // resourceRequestMemory: '256Mi', 
-    //   // resourceLimitMemory: '512Mi',
-    //   command: 'bash -c "sleep 5 && /opt/bin/entry_point.sh"',
-    //   ttyEnabled: true,
-    //   envVars: [
-    //     envVar(key: 'HUB_HOST', value: 'selenium-hub'),
-    //     envVar(key: 'REMOTE_HOST', value: 'http://firefox-node:5555'),
-    //     envVar(key: 'NODE_MAX_SESSION', value: '5'),
-    //     envVar(key: 'NODE_MAX_INSTANCES', value: '5')
-    //   ],
-    //   ports: [
-    //     portMapping(name: 'vnc', containerPort: 5900, hostPort: 5901),
-    //     portMapping(name: 'firefox-node', containerPort: 5555, hostPort: 5556)
-    //   ]
-    // ),
     containerTemplate(
       name: 'jnlp', 
       image: 'jenkinsci/jnlp-slave:3.19-1-alpine', 
@@ -134,46 +76,49 @@ podTemplate(label: 'jenkins-pipeline',
 
   node ('jenkins-pipeline') {
 
-    def pwd = pwd()
-    def chart_dir = "${pwd}/charts/croc-hunter"
+    stage('Prepare and SCM') {
 
-    checkout scm
+      def pwd = pwd()
+      def chart_dir = "${pwd}/charts/croc-hunter"
 
-    // read in required jenkins workflow config values
-    def inputFile = readFile('Jenkinsfile.json')
-    def config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
-    println "pipeline config ==> ${config}"
+      checkout scm
 
-    // continue only if pipeline enabled
-    if (!config.pipeline.enabled) {
-        println "pipeline disabled"
-        return
-    }
+      // read in required jenkins workflow config values
+      def inputFile = readFile('Jenkinsfile.json')
+      def config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+      println "pipeline config ==> ${config}"
 
-    // set additional git envvars for image tagging
-    pipeline.gitEnvVars()
-
-    // If pipeline debugging enabled
-    if (config.pipeline.debug) {
-      println "DEBUG ENABLED"
-      sh "env | sort"
-
-      println "Runing kubectl/helm tests"
-      container('kubectl') {
-        pipeline.kubectlTest()
+      // continue only if pipeline enabled
+      if (!config.pipeline.enabled) {
+          println "pipeline disabled"
+          return
       }
-      container('helm') {
-        pipeline.helmConfig()
+
+      // set additional git envvars for image tagging
+      pipeline.gitEnvVars()
+
+      // If pipeline debugging enabled
+      if (config.pipeline.debug) {
+        println "DEBUG ENABLED"
+        sh "env | sort"
+
+        println "Runing kubectl/helm tests"
+        container('kubectl') {
+          pipeline.kubectlTest()
+        }
+        container('helm') {
+          pipeline.helmConfig()
+        }
       }
+
+      def acct = pipeline.getContainerRepoAcct(config)
+
+      // tag image with version, and branch-commit_id
+      def image_tags_map = pipeline.getContainerTags(config)
+
+      // compile tag list
+      def image_tags_list = pipeline.getMapValues(image_tags_map)
     }
-
-    def acct = pipeline.getContainerRepoAcct(config)
-
-    // tag image with version, and branch-commit_id
-    def image_tags_map = pipeline.getContainerTags(config)
-
-    // compile tag list
-    def image_tags_list = pipeline.getMapValues(image_tags_map)
 
     stage ('compile and test') {
 
@@ -271,7 +216,7 @@ podTemplate(label: 'jenkins-pipeline',
         stage('DEBUG: get helm status BEFORE Clean App'){
           container('helm') {
             helmStatus = pipeline.helmStatus(
-              release    : branchNameNormalized
+              name    : branchNameNormalized
             )
           }
           // // @Params: branchNameNormalized
