@@ -7,10 +7,16 @@
 
 def pipeline = new io.estrado.Pipeline()
 
-def configuration = [
-  skipRemoveApp:true,
-  showHelmTestLogs:true
-]
+// def configuration = [
+//   skipRemoveApp:true,
+//   showHelmTestLogs:true,
+//   debug:{"helm status": true}
+// ]
+
+def configuration = {
+  skipRemoveApp: true,
+  showHelmTestLogs: true
+}
 
 // defaults
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
@@ -262,6 +268,9 @@ podTemplate(label: 'jenkins-pipeline',
 
       // OV DEBUG
       stage('DEBUG: get helm status BEFORE Clean App'){
+        // container('helm') {
+        //   echo getHelmStatus({"release": branchNameNormalized})
+        // }
         // @Params: branchNameNormalized
         // def helmStatus // local shadow
         def helmStatusText  = ""
