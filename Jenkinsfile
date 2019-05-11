@@ -129,8 +129,10 @@ podTemplate(label: 'jenkins-pipeline',
 
   node ('jenkins-pipeline') {
 
-    def catFile = sh "cat file"
+    def catFile = sh "cat tests/selenium/test_app.py"
     echo catFile
+
+    return
 
 
     def pwd = pwd()
