@@ -5,7 +5,6 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
-// def result = sh "cat file"
 
 def pipeline = new io.estrado.Pipeline()
 
@@ -129,6 +128,9 @@ podTemplate(label: 'jenkins-pipeline',
 ){
 
   node ('jenkins-pipeline') {
+
+    def result = sh "cat file"
+
 
     def pwd = pwd()
     def chart_dir = "${pwd}/charts/croc-hunter"
