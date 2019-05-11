@@ -130,6 +130,7 @@ podTemplate(label: 'jenkins-pipeline',
   node ('jenkins-pipeline') {
 
     def catFile = sh "cat file"
+    echo catFile
 
 
     def pwd = pwd()
