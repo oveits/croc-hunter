@@ -270,6 +270,10 @@ podTemplate(label: 'jenkins-pipeline',
 
           // echo helmStatus
         }
+
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get all"
+        }
       }
 
       stage ('PR: Deploy App') {
@@ -317,6 +321,10 @@ podTemplate(label: 'jenkins-pipeline',
           helmStatus = readJSON text: helmStatusText
 
           // echo helmStatus
+        }
+
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get all"
         }
       }
 
