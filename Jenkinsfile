@@ -261,7 +261,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       // OV DEBUG
-      stage('DEBUG: get helm status'){
+      stage('DEBUG: get helm status BEFORE Clean App'){
         // @Params: branchNameNormalized
         // def helmStatus // local shadow
         def helmStatusText  = ""
@@ -282,6 +282,8 @@ podTemplate(label: 'jenkins-pipeline',
             sh "kubectl -n ${helmStatus.namespace} get all"
           }
         }
+        // branchNameNormalized
+        sh "kubectl -n ${branchNameNormalized} get all"
       }
 
       stage('Clean App'){
@@ -296,7 +298,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('DEBUG: get helm status'){
+      stage('DEBUG: get helm status AFTER Clean App'){
         // @Params: branchNameNormalized
         // def helmStatus // local shadow
         def helmStatusText  = ""
@@ -317,6 +319,8 @@ podTemplate(label: 'jenkins-pipeline',
             sh "kubectl -n ${helmStatus.namespace} get all"
           }
         }
+        // branchNameNormalized
+        sh "kubectl -n ${branchNameNormalized} get all"
       }
 
       stage ('PR: Deploy App') {
@@ -356,7 +360,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('DEBUG: get helm status'){
+      stage('DEBUG: get helm status AFTER Deploy App'){
         // @Params: branchNameNormalized
         // def helmStatus // local shadow
         def helmStatusText  = ""
@@ -377,6 +381,8 @@ podTemplate(label: 'jenkins-pipeline',
             sh "kubectl -n ${helmStatus.namespace} get all"
           }
         }
+        // branchNameNormalized
+        sh "kubectl -n ${branchNameNormalized} get all"
       }
 
       stage ('PR: Selenium complete?') {
@@ -439,9 +445,61 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
+      stage('DEBUG: get helm status AFTER delete old UI test containers (old way)'){
+        // @Params: branchNameNormalized
+        // def helmStatus // local shadow
+        def helmStatusText  = ""
+        container('helm') {
+          
+          // get helm status
+          helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
+          echo helmStatusText
+          if(helmStatusText != null && helmStatusText != ""){
+            helmStatus = readJSON text: helmStatusText
+          }
+
+          // echo helmStatus
+        }
+
+        if(helmStatusText != null && helmStatusText != ""){
+          container('kubectl'){
+            sh "kubectl -n ${helmStatus.namespace} get all"
+          }
+        }
+        // branchNameNormalized
+        sh "kubectl -n ${branchNameNormalized} get all"
+      }
+
       stage('PR: delete old UI test containers (kubectl way of deleting all completed PODs)') {
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
+        }
         // kubectl -n pr-7 get pods | grep 'Completed' | awk '{print $1}' | xargs -n 1 echo kubectl -n pr-7 delete pod
-        sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
+      }
+
+      stage('DEBUG: get helm status AFTER delete old UI test containers (new way)'){
+        // @Params: branchNameNormalized
+        // def helmStatus // local shadow
+        def helmStatusText  = ""
+        container('helm') {
+          
+          // get helm status
+          helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
+          echo helmStatusText
+          if(helmStatusText != null && helmStatusText != ""){
+            helmStatus = readJSON text: helmStatusText
+          }
+
+          // echo helmStatus
+        }
+
+        if(helmStatusText != null && helmStatusText != ""){
+          container('kubectl'){
+            sh "kubectl -n ${helmStatus.namespace} get all"
+          }
+        }
+        // branchNameNormalized
+        sh "kubectl -n ${branchNameNormalized} get all"
       }
  
       stage ('PR: UI Tests') {
