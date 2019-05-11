@@ -5,7 +5,11 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
-def catFileOut = sh "cat tests/selenium/test_app.py"
+// leads to: 
+// org.jenkinsci.plugins.workflow.steps.MissingContextVariableException: Required context class hudson.FilePath is missing
+// Perhaps you forgot to surround the code with a step that provides this, such as: node
+// 
+// def catFileOut = sh "cat tests/selenium/test_app.py"
 
 def pipeline = new io.estrado.Pipeline()
 
