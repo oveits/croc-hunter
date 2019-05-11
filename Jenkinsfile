@@ -249,9 +249,9 @@ podTemplate(label: 'jenkins-pipeline',
           //   }
           // }
           // // branchNameNormalized
-          // container('kubectl'){
-          //   sh "kubectl -n ${branchNameNormalized} get all || true"
-          // }
+          container('kubectl'){
+            sh "kubectl -n ${branchNameNormalized} get all || true"
+          }
         }
       }
 
