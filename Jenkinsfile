@@ -3,25 +3,25 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@develop')
+// @Library('github.com/oveits/jenkins-pipeline@develop')
+@Library('github.com/oveits/jenkins-pipeline@feature/0004-helmStatus')
 
 def pipeline = new io.estrado.Pipeline()
 
-// def configuration = [
-//   skipRemoveApp:true,
-//   showHelmTestLogs:true,
-//   debug:{"helm status": true}
-// ]
-
-def configuration = {
-  "skipRemoveApp": true,
-  "showHelmTestLogs": true
-}
+def configuration = [
+  skipRemoveApp:true,
+  showHelmTestLogs:true,
+  debug:[
+    helmStatus:true
+    ]
+]
 
 // defaults
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
 configuration.skipRemoveApp    = configuration.skipRemoveApp != null ? configuration.skipRemoveApp : false
 configuration.showHelmTestLogs = configuration.showHelmTestLogs != null ? configuration.showHelmTestLogs : false
+configuration.debug.helmStatus = configuration.debug.helmStatus != null ? configuration.debug.helmStatus : false
+
 
 
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
@@ -267,33 +267,37 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       // OV DEBUG
-      stage('DEBUG: get helm status BEFORE Clean App'){
-        // container('helm') {
-        //   echo getHelmStatus({"release": branchNameNormalized})
-        // }
-        // @Params: branchNameNormalized
-        // def helmStatus // local shadow
-        def helmStatusText  = ""
-        container('helm') {
-          
-          // get helm status
-          helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
-          echo helmStatusText
-          if(helmStatusText != null && helmStatusText != ""){
-            helmStatus = readJSON text: helmStatusText
+      if (configuration.debug.helmStatus) {
+        stage('DEBUG: get helm status BEFORE Clean App'){
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              release    : branchNameNormalized
+            )
           }
+          // // @Params: branchNameNormalized
+          // // def helmStatus // local shadow
+          // def helmStatusText  = ""
+          // container('helm') {
+            
+          //   // get helm status
+          //   helmStatusText = sh script: "helm status ${branchNameNormalized} -o json || true", returnStdout: true
+          //   echo helmStatusText
+          //   if(helmStatusText != null && helmStatusText != ""){
+          //     helmStatus = readJSON text: helmStatusText
+          //   }
 
-          // echo helmStatus
-        }
+          //   // echo helmStatus
+          // }
 
-        if(helmStatusText != null && helmStatusText != ""){
-          container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all || true"
-          }
-        }
-        // branchNameNormalized
-        container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all || true"
+          // if(helmStatusText != null && helmStatusText != ""){
+          //   container('kubectl'){
+          //     sh "kubectl -n ${helmStatus.namespace} get all || true"
+          //   }
+          // }
+          // // branchNameNormalized
+          // container('kubectl'){
+          //   sh "kubectl -n ${branchNameNormalized} get all || true"
+          // }
         }
       }
 
@@ -308,6 +312,7 @@ podTemplate(label: 'jenkins-pipeline',
           """
         }
       }
+
 
       stage('DEBUG: get helm status AFTER Clean App'){
         // @Params: branchNameNormalized
