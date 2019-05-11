@@ -5,6 +5,7 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
+// def catFileOut = sh "cat tests/selenium/test_app.py"
 
 def pipeline = new io.estrado.Pipeline()
 
@@ -129,11 +130,6 @@ podTemplate(label: 'jenkins-pipeline',
 
   node ('jenkins-pipeline') {
 
-    def catFile = sh "cat tests/selenium/test_app.py"
-    echo catFile
-
-    return
-
 
     def pwd = pwd()
     def chart_dir = "${pwd}/charts/croc-hunter"
@@ -175,6 +171,11 @@ podTemplate(label: 'jenkins-pipeline',
 
     // compile tag list
     def image_tags_list = pipeline.getMapValues(image_tags_map)
+
+    // test
+    def catFile = sh "cat tests/selenium/test_app.py"
+    echo catFile
+    return
 
     stage ('compile and test') {
 
