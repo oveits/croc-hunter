@@ -344,8 +344,10 @@ podTemplate(label: 'jenkins-pipeline',
         // delete old test pods, if needed
         container('kubectl'){
           
-          helmStatus.info.status.last_test_suite_run.results.each { result ->
-            sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+          if(helmStatus.info.status.last_test_suite_run != null) {
+              helmStatus.info.status.last_test_suite_run.results.each { result ->
+              sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+            }
           }
         }
       }
@@ -385,8 +387,10 @@ podTemplate(label: 'jenkins-pipeline',
           if(configuration.showHelmTestLogs){
             container('kubectl') {
 
-              helmStatus.info.status.last_test_suite_run.results.each { result ->
-                sh "kubectl -n ${helmStatus.namespace} logs pod ${result.name}"
+              if(helmStatus.info.status.last_test_suite_run != null) {
+                  helmStatus.info.status.last_test_suite_run.results.each { result ->
+                  sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+                }
               }
             }
           }
@@ -394,8 +398,10 @@ podTemplate(label: 'jenkins-pipeline',
           // delete test pods
           container('kubectl') {
             
-            helmStatus.info.status.last_test_suite_run.results.each { result ->
-              sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+            if(helmStatus.info.status.last_test_suite_run != null) {
+                helmStatus.info.status.last_test_suite_run.results.each { result ->
+                sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+              }
             }
             // debug
             // echo "container_kubectl: test_pods_after = ___${test_pods_after}___"
