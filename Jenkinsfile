@@ -279,12 +279,12 @@ podTemplate(label: 'jenkins-pipeline',
 
         if(helmStatusText != null && helmStatusText != ""){
           container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all"
+            sh "kubectl -n ${helmStatus.namespace} get all || true"
           }
         }
         // branchNameNormalized
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all"
+          sh "kubectl -n ${branchNameNormalized} get all || true"
         }
       }
 
@@ -318,12 +318,12 @@ podTemplate(label: 'jenkins-pipeline',
 
         if(helmStatusText != null && helmStatusText != ""){
           container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all"
+            sh "kubectl -n ${helmStatus.namespace} get all || true"
           }
         }
         // branchNameNormalized
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all"
+          sh "kubectl -n ${branchNameNormalized} get all || true"
         }
       }
 
@@ -382,12 +382,12 @@ podTemplate(label: 'jenkins-pipeline',
 
         if(helmStatusText != null && helmStatusText != ""){
           container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all"
+            sh "kubectl -n ${helmStatus.namespace} get all || true"
           }
         }
         // branchNameNormalized
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all"
+          sh "kubectl -n ${branchNameNormalized} get all || true"
         }
       }
 
@@ -469,12 +469,12 @@ podTemplate(label: 'jenkins-pipeline',
 
         if(helmStatusText != null && helmStatusText != ""){
           container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all"
+            sh "kubectl -n ${helmStatus.namespace} get all || true"
           }
         }
         // branchNameNormalized
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all"
+          sh "kubectl -n ${branchNameNormalized} get all || true"
         }
       }
 
@@ -503,12 +503,12 @@ podTemplate(label: 'jenkins-pipeline',
 
         if(helmStatusText != null && helmStatusText != ""){
           container('kubectl'){
-            sh "kubectl -n ${helmStatus.namespace} get all"
+            sh "kubectl -n ${helmStatus.namespace} get all || true"
           }
         }
         // branchNameNormalized
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all"
+          sh "kubectl -n ${branchNameNormalized} get all || true"
         }
       }
  
