@@ -5,7 +5,7 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
-// def catFileOut = sh "cat tests/selenium/test_app.py"
+def catFileOut = sh "cat tests/selenium/test_app.py"
 
 def pipeline = new io.estrado.Pipeline()
 
