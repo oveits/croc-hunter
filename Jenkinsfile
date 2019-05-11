@@ -283,7 +283,9 @@ podTemplate(label: 'jenkins-pipeline',
           }
         }
         // branchNameNormalized
-        sh "kubectl -n ${branchNameNormalized} get all"
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get all"
+        }
       }
 
       stage('Clean App'){
@@ -320,7 +322,9 @@ podTemplate(label: 'jenkins-pipeline',
           }
         }
         // branchNameNormalized
-        sh "kubectl -n ${branchNameNormalized} get all"
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get all"
+        }
       }
 
       stage ('PR: Deploy App') {
@@ -382,7 +386,9 @@ podTemplate(label: 'jenkins-pipeline',
           }
         }
         // branchNameNormalized
-        sh "kubectl -n ${branchNameNormalized} get all"
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get all"
+        }
       }
 
       stage ('PR: Selenium complete?') {
@@ -467,7 +473,9 @@ podTemplate(label: 'jenkins-pipeline',
           }
         }
         // branchNameNormalized
-        sh "kubectl -n ${branchNameNormalized} get all"
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get all"
+        }
       }
 
       stage('PR: delete old UI test containers (kubectl way of deleting all completed PODs)') {
@@ -499,7 +507,9 @@ podTemplate(label: 'jenkins-pipeline',
           }
         }
         // branchNameNormalized
-        sh "kubectl -n ${branchNameNormalized} get all"
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get all"
+        }
       }
  
       stage ('PR: UI Tests') {
