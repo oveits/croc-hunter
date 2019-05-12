@@ -91,14 +91,7 @@ podTemplate(label: 'jenkins-pipeline',
           println "deleting and purging selenium, if present"
           sh """
             helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
-              && echo found
-            helm list -a | grep -P '^${seleniumRelease}[ \t]' \
-              && echo found via perl-style grep
-            helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
               && helm delete --purge ${seleniumRelease}
-            # helm list -a | grep -P '^${seleniumRelease}[ \t]' && helm delete --purge ${seleniumRelease}
-            # helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
-            # helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease}
           """
         }
       }
@@ -155,6 +148,15 @@ podTemplate(label: 'jenkins-pipeline',
 
       // compile tag list
       image_tags_list = pipeline.getMapValues(image_tags_map)
+
+      // initialize helm container
+      container('helm') {
+          // init
+          println "initialzing helm client"
+          sh "helm init"
+          println "checking client/server version"
+          sh "helm version"
+      }
     }
 
     stage ('compile and test') {
@@ -218,16 +220,12 @@ podTemplate(label: 'jenkins-pipeline',
       stage('PR: Deploy Selenium') {
         // Deploy using Helm chart
         container('helm') {
-          // init
-          println "initialzing helm client"
-          sh "helm init"
-          println "checking client/server version"
-          sh "helm version"
-
+          // delete and purge selenium, if present
           if ( !configuration.sharedSelenium ) {
             echo "delete and purge selenium, if present"
             sh """
-              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+              helm list -a --output yaml | grep 'Name: ${seleniumRelease}$' \
+                && helm delete --purge ${seleniumRelease} || true
             """
           }
 
@@ -269,7 +267,8 @@ podTemplate(label: 'jenkins-pipeline',
           // purge deleted versions of ${branchNameNormalized}, if present
           sh """
             # purge deleted versions of ${branchNameNormalized}, if present
-            helm list -a | grep '^${branchNameNormalized} ' && helm delete --purge ${branchNameNormalized} || true
+            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}$' \
+              && helm delete --purge ${branchNameNormalized} || true
           """
         }
       }
@@ -293,7 +292,8 @@ podTemplate(label: 'jenkins-pipeline',
           // purge deleted versions of ${branchNameNormalized}, if present
           sh """
             # purge deleted versions of ${branchNameNormalized}, if present
-            helm list -a | grep '^${branchNameNormalized} ' && helm delete --purge ${branchNameNormalized} || true
+            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}$' \
+              && helm delete --purge ${branchNameNormalized} || true
           """
 
                     // Create secret from Jenkins credentials manager
@@ -486,9 +486,8 @@ podTemplate(label: 'jenkins-pipeline',
             
             println "deleting and purging selenium, if present"
             sh """
-              helm list -a | grep '^${seleniumRelease} ' 
-              # helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
-              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease}
+              helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
+                && helm delete --purge ${seleniumRelease}
             """
           }
         }
