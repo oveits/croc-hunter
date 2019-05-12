@@ -354,7 +354,7 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage('PR: completed and error PODs if present') {
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
+          sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
         }
       }
 
