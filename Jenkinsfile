@@ -78,6 +78,26 @@ podTemplate(label: 'jenkins-pipeline',
 
   node ('jenkins-pipeline') {
 
+    if ( !configuration.sharedSelenium ) {
+      stage('Remove Selenium') {
+        // Delete Helm revision
+        container('helm') {
+          // init
+          println "initialzing helm client"
+          sh "helm init"
+          println "checking client/server version"
+          sh "helm version"
+          
+          println "deleting and purging selenium, if present"
+          sh """
+            helm list -a | grep '^${seleniumRelease} ' 
+            # helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+            helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease}
+          """
+        }
+      }
+    }
+
     def pwd = pwd()
     def chart_dir = "${pwd}/charts/croc-hunter"
     // following vars are defined in stage 'Prepare and SCM' and are used in subsequent stages:
@@ -199,8 +219,8 @@ podTemplate(label: 'jenkins-pipeline',
           sh "helm version"
 
           if ( !configuration.sharedSelenium ) {
+            echo "delete and purge selenium, if present"
             sh """
-              # purge deleted versions of selenium, if present
               helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
             """
           }
@@ -412,7 +432,7 @@ podTemplate(label: 'jenkins-pipeline',
           }          
 
           // show logs of test pods:
-          if(configuration.showHelmTestLogs){
+          if(configuration.showHelmTestLogs) {
             container('kubectl') {
 
               if(helmStatus.info.status.last_test_suite_run != null) {
@@ -437,7 +457,6 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-
       if (configuration.skipRemoveApp == false) {
         stage ('PR: Remove App') {
           container('helm') {
@@ -461,8 +480,9 @@ podTemplate(label: 'jenkins-pipeline',
             
             println "deleting and purging selenium, if present"
             sh """
-              # purge deleted versions of selenium, if present
-              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+              helm list -a | grep '^${seleniumRelease} ' 
+              # helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
+              helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease}
             """
           }
         }
