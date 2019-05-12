@@ -90,9 +90,15 @@ podTemplate(label: 'jenkins-pipeline',
           
           println "deleting and purging selenium, if present"
           sh """
-            helm list -a | grep '^${seleniumRelease} ' 
+            helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
+              && echo found
+            helm list -a | grep -P '^${seleniumRelease}[ \t]' \
+              && echo found via perl-style grep
+            helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
+              && helm delete --purge ${seleniumRelease}
+            # helm list -a | grep -P '^${seleniumRelease}[ \t]' && helm delete --purge ${seleniumRelease}
             # helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
-            helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease}
+            # helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease}
           """
         }
       }
