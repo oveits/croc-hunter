@@ -78,25 +78,6 @@ podTemplate(label: 'jenkins-pipeline',
 
   node ('jenkins-pipeline') {
 
-    if ( !configuration.sharedSelenium ) {
-      stage('Remove Selenium') {
-        // Delete Helm revision
-        container('helm') {
-          // init
-          println "initialzing helm client"
-          sh "helm init"
-          println "checking client/server version"
-          sh "helm version"
-          
-          println "deleting and purging selenium, if present"
-          sh """
-            helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
-              && helm delete --purge ${seleniumRelease} || true
-          """
-        }
-      }
-    }
-
     def pwd = pwd()
     def chart_dir = "${pwd}/charts/croc-hunter"
     // following vars are defined in stage 'Prepare and SCM' and are used in subsequent stages:
