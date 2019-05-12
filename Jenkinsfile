@@ -10,9 +10,7 @@ def pipeline = new io.estrado.Pipeline()
 def configuration = [
   skipRemoveApp:true,
   skipRemoveTestPods:false,
-  showHelmTestLogs:true,
-  debug:[:]
-  //   helmStatus:true
+  showHelmTestLogs:true
 ]
 
 // defaults
@@ -21,9 +19,10 @@ configuration.sharedSelenium        = configuration.sharedSelenium != null     ?
 configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp : false
 configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods : false
 configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs : true
+configuration.debug                 = configuration.debug != null              ?    configuration.debug : [:]
 configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus : false
 
-
+echo configuration
 
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
@@ -253,15 +252,16 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-
-      stage('DEBUG: get helm status AFTER Clean App'){
-        container('helm') {
-          helmStatus = pipeline.helmStatus(
-            name    : branchNameNormalized
-          )
-        }
-        container('kubectl') {
-          sh "kubectl -n ${branchNameNormalized} get all || true"
+      if (configuration.debug.helmStatus) {
+        stage('DEBUG: get helm status AFTER Clean App'){
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }
+          container('kubectl') {
+            sh "kubectl -n ${branchNameNormalized} get all || true"
+          }
         }
       }
 
@@ -303,14 +303,16 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('DEBUG: get helm status AFTER Deploy App'){
-        container('helm') {
-          helmStatus = pipeline.helmStatus(
-            name    : branchNameNormalized
-          )
-        }        
-        container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all || true"
+      if (configuration.debug.helmStatus) {
+        stage('DEBUG: get helm status AFTER Deploy App'){
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }        
+          container('kubectl'){
+            sh "kubectl -n ${branchNameNormalized} get all || true"
+          }
         }
       }
 
@@ -352,48 +354,22 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('PR: delete old UI test containers, if needed (helm status + kubectl way)'){
-        container('helm') {
-          helmStatus = pipeline.helmStatus(
-            name    : branchNameNormalized
-          )
-        }        
-        container('kubectl') {
-          
-          if(helmStatus.info.status.last_test_suite_run != null) {
-              helmStatus.info.status.last_test_suite_run.results.each { result ->
-              sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
-            }
-          }
-        }
-      }
-
-      stage('DEBUG: get helm status AFTER delete old UI test containers (old way)') {
-        container('helm') {
-          helmStatus = pipeline.helmStatus(
-            name    : branchNameNormalized
-          )
-        }        
-        container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all || true"
-        }
-      }
-
-      stage('PR: delete old UI test containers (kubectl way of deleting all completed PODs)') {
+      stage('PR: completed containers if present') {
         container('kubectl'){
           sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
         }
-        // kubectl -n pr-7 get pods | grep 'Completed' | awk '{print $1}' | xargs -n 1 echo kubectl -n pr-7 delete pod
       }
 
-      stage('DEBUG: get helm status AFTER delete old UI test containers (new way)') {
-        container('helm') {
-          helmStatus = pipeline.helmStatus(
-            name    : branchNameNormalized
-          )
-        }        
-        container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get all || true"
+      if (configuration.debug.helmStatus) {
+        stage('DEBUG: get helm status AFTER delete old UI test containers (new way)') {
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }        
+          container('kubectl'){
+            sh "kubectl -n ${branchNameNormalized} get all || true"
+          }
         }
       }
  
