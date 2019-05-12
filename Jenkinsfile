@@ -11,9 +11,7 @@ def configuration = [
   skipRemoveApp:true,
   skipRemoveTestPods:false,
   showHelmTestLogs:true,
-  debug:[
-    helmStatus:false
-  ]
+  debug:[:]
 ]
 
 // defaults
@@ -23,8 +21,6 @@ configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?
 configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods : false
 configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs : true
 configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus : false
-
-echo configuration
 
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
