@@ -12,7 +12,7 @@ def configuration = [
   skipRemoveTestPods:false,
   showHelmTestLogs:true,
   debug:[
-    // helmStatus:true
+    helmStatus:false
   ]
 ]
 
