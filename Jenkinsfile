@@ -9,6 +9,7 @@ def pipeline = new io.estrado.Pipeline()
 
 def configuration = [
   skipRemoveApp:true,
+  skipRemoveTestPods:false,
   showHelmTestLogs:true,
   debug:[
     helmStatus:true
@@ -17,15 +18,17 @@ def configuration = [
 
 // defaults
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
-configuration.skipRemoveApp    = configuration.skipRemoveApp != null ? configuration.skipRemoveApp : false
-configuration.showHelmTestLogs = configuration.showHelmTestLogs != null ? configuration.showHelmTestLogs : false
-configuration.debug.helmStatus = configuration.debug.helmStatus != null ? configuration.debug.helmStatus : false
+configuration.sharedSelenium        = configuration.sharedSelenium != null     ?    configuration.sharedSelenium : false
+configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp : false
+configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods : false
+configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs : true
+configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus : false
 
 
 
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
-def sharedSelenium = true
+// def sharedSelenium = true
 def seleniumRelease
 def seleniumNamespace = branchNameNormalized
 // sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
@@ -195,7 +198,7 @@ podTemplate(label: 'jenkins-pipeline',
           println "checking client/server version"
           sh "helm version"
 
-          if ( !sharedSelenium ) {
+          if ( !configuration.sharedSelenium ) {
             sh """
               # purge deleted versions of selenium, if present
               helm list -a | grep '^${seleniumRelease} ' && helm delete --purge ${seleniumRelease} || true
@@ -421,11 +424,13 @@ podTemplate(label: 'jenkins-pipeline',
           }
 
           // delete test pods
-          container('kubectl') {
-            
-            if(helmStatus.info.status.last_test_suite_run != null) {
-                helmStatus.info.status.last_test_suite_run.results.each { result ->
-                sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+          if(!configuration.skipRemoveTestPods) {
+            container('kubectl') {
+              
+              if(helmStatus.info.status.last_test_suite_run != null) {
+                  helmStatus.info.status.last_test_suite_run.results.each { result ->
+                  sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+                }
               }
             }
           }
@@ -444,7 +449,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      if ( !sharedSelenium ) {
+      if ( !configuration.sharedSelenium ) {
         stage('Remove Selenium') {
           // Delete Helm revision
           container('helm') {
