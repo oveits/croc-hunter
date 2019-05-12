@@ -11,7 +11,9 @@ def configuration = [
   skipRemoveApp:true,
   skipRemoveTestPods:false,
   showHelmTestLogs:true,
-  debug:[:]
+  debug:[
+    // helmStatus:true
+  ]
 ]
 
 // defaults
