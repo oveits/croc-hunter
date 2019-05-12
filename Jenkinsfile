@@ -91,7 +91,7 @@ podTemplate(label: 'jenkins-pipeline',
           println "deleting and purging selenium, if present"
           sh """
             helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
-              && helm delete --purge ${seleniumRelease}
+              && helm delete --purge ${seleniumRelease} || true
           """
         }
       }
@@ -224,7 +224,7 @@ podTemplate(label: 'jenkins-pipeline',
           if ( !configuration.sharedSelenium ) {
             echo "delete and purge selenium, if present"
             sh """
-              helm list -a --output yaml | grep 'Name: ${seleniumRelease}$' \
+              helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
                 && helm delete --purge ${seleniumRelease} || true
             """
           }
@@ -267,7 +267,7 @@ podTemplate(label: 'jenkins-pipeline',
           // purge deleted versions of ${branchNameNormalized}, if present
           sh """
             # purge deleted versions of ${branchNameNormalized}, if present
-            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}$' \
+            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}\$' \
               && helm delete --purge ${branchNameNormalized} || true
           """
         }
@@ -292,7 +292,7 @@ podTemplate(label: 'jenkins-pipeline',
           // purge deleted versions of ${branchNameNormalized}, if present
           sh """
             # purge deleted versions of ${branchNameNormalized}, if present
-            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}$' \
+            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}\$' \
               && helm delete --purge ${branchNameNormalized} || true
           """
 
