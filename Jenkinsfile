@@ -8,6 +8,7 @@
 def pipeline = new io.estrado.Pipeline()
 
 def configuration = [
+  sharedSelenium:true,
   skipRemoveApp:true,
   skipRemoveTestPods:false,
   showHelmTestLogs:true,
