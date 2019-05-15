@@ -212,7 +212,8 @@ podTemplate(label: 'jenkins-pipeline',
             # upgrade selenium revision. Install, if not present:
             helm upgrade --install ${seleniumRelease} stable/selenium \
               --namespace ${seleniumNamespace} \
-              --set chromeDebug.enabled=true
+              --set chromeDebug.enabled=true \
+              --force
           """
           }
         
