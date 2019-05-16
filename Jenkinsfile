@@ -8,7 +8,7 @@
 def pipeline = new io.estrado.Pipeline()
 
 def configuration = [
-  // sharedSelenium:true,
+  sharedSelenium:true,
   skipRemoveApp:true, 
   skipRemoveTestPods:false,
   showHelmTestLogs:true,
@@ -383,7 +383,7 @@ podTemplate(label: 'jenkins-pipeline',
 
           // run tests
           container('helm') {
-            sh "helm test ${branchNameNormalized}"
+            sh "sleep 120 && helm test ${branchNameNormalized}"
           }
 
           // read helm status
