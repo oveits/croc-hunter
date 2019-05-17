@@ -12,7 +12,9 @@ def configuration = [
   skipRemoveApp:true, 
   skipRemoveTestPods:false,
   showHelmTestLogs:true,
-  debug:[:]
+  debug:[
+    helmStatus:true
+  ]
 ]
 
 // defaults
@@ -354,7 +356,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('PR: completed and error PODs if present') {
+      stage('PR: delete completed PODs if present') {
         container('kubectl'){
           sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
         }
@@ -383,7 +385,21 @@ podTemplate(label: 'jenkins-pipeline',
 
           // run tests
           container('helm') {
-            sh "sleep 120 && helm test ${branchNameNormalized}"
+            def success = sh "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'"
+          }
+
+          if(success ==~ /.*Error: transport is closing.*/){
+            echo "helm test has failed with 'Error: transport is closing'. Re-trying..."
+
+            echo "cleaning:"
+            container('kubectl'){
+              sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
+            }
+
+            echo "testing:"
+            container('helm') {
+              sh "helm test ${branchNameNormalized}"
+            }
           }
 
           // read helm status
