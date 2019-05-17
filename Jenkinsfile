@@ -24,6 +24,8 @@ configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?
 configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods : false
 configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs : true
 configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus : false
+configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry : (env.getProperty('HELM_TEST_RETRY') != null ? env.getProperty('HELM_TEST_RETRY').toInteger() : 0)
+// configuration.helmTestRetry
 
 def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
@@ -33,6 +35,7 @@ def seleniumNamespace = branchNameNormalized
 // sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
 seleniumRelease = branchNameNormalized + '-selenium'
 def helmStatus
+def testLog
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
@@ -378,18 +381,18 @@ podTemplate(label: 'jenkins-pipeline',
       stage ('PR: UI Tests') {
         // depends on: stage('delete old UI test containers, if needed')
         
-        def test_pods
-          //  Run helm tests
+        //  Run helm tests
 
         if (config.app.test) {
 
           // run tests
-          def success
           container('helm') {
-            success = sh "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'"
+            testLog = sh "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'"
           }
 
-          if(success ==~ /.*SUCCESS=false*/){
+          // retrying the helm test:
+          while(configuration.helmTestRetry != null && configuration.helmTestRetry > 0 && testLog ==~ /.*SUCCESS=false*/) {
+            configuration.helmTestRetry = configuration.helmTestRetry - 1
             echo "helm test has failed. Re-trying..."
 
             echo "cleaning:"
@@ -399,7 +402,7 @@ podTemplate(label: 'jenkins-pipeline',
 
             echo "testing:"
             container('helm') {
-              sh "helm test ${branchNameNormalized}"
+              testLog = sh "helm test ${branchNameNormalized}  2>&1 || echo 'SUCCESS=false'"
             }
           }
 
@@ -432,6 +435,13 @@ podTemplate(label: 'jenkins-pipeline',
                 }
               }
             }
+          }
+
+          // fail, if all test runs have failed
+          if(testLog ==~ /.*SUCCESS=false*) {
+            echo "ERROR: test has failed. Showing log and exiting"
+            echo "testLog = ${testLog}"
+            sh "exit 1"
           }
         }
       }
@@ -466,6 +476,8 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
     }
+
+   
 
     // deploy only the master branch
     if (env.BRANCH_NAME == 'master') {
