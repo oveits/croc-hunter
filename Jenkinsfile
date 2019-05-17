@@ -7,59 +7,140 @@
 
 def pipeline = new io.estrado.Pipeline()
 
-podTemplate(label: 'jenkins-pipeline', containers: [
-    containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:3.19-1-alpine', args: '${computer.jnlpmac} ${computer.name}', workingDir: '/home/jenkins', resourceRequestCpu: '200m', resourceLimitCpu: '300m', resourceRequestMemory: '256Mi', resourceLimitMemory: '512Mi'),
-    containerTemplate(name: 'docker', image: 'docker:latest', command: 'cat', ttyEnabled: true),
-    containerTemplate(name: 'golang', image: 'golang:1.8.3', command: 'cat', ttyEnabled: true),
-    containerTemplate(name: 'helm', image: 'lachlanevenson/k8s-helm:v2.12.1', command: 'cat', ttyEnabled: true),
-    containerTemplate(name: 'kubectl', image: 'lachlanevenson/k8s-kubectl:v1.10.7', command: 'cat', ttyEnabled: true)
-],
-volumes:[
+def configuration = [
+  // sharedSelenium:true,
+  skipRemoveApp:true, 
+  skipRemoveTestPods:false,
+  showHelmTestLogs:true,
+  debug:[
+    helmStatus:true
+  ]
+]
+
+// defaults
+// configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
+configuration.sharedSelenium        = configuration.sharedSelenium != null     ?    configuration.sharedSelenium : false
+configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp : false
+configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods : false
+configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs : true
+configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus : false
+configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry : (env.getProperty('HELM_TEST_RETRY') != null ? env.getProperty('HELM_TEST_RETRY').toInteger() : 0)
+// configuration.helmTestRetry
+
+def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
+def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
+// def sharedSelenium = true
+def seleniumRelease
+def seleniumNamespace = branchNameNormalized
+// sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
+seleniumRelease = branchNameNormalized + '-selenium'
+def helmStatus
+def testLog
+
+podTemplate(label: 'jenkins-pipeline', 
+  containers: [
+    containerTemplate(
+      name: 'jnlp', 
+      image: 'jenkinsci/jnlp-slave:3.19-1-alpine', 
+      args: '${computer.jnlpmac} ${computer.name}', 
+      workingDir: '/home/jenkins', 
+      resourceRequestCpu: '200m', 
+      resourceLimitCpu: '300m', 
+      resourceRequestMemory: '256Mi', 
+      resourceLimitMemory: '512Mi'
+    ),
+    containerTemplate(
+      name: 'docker', 
+      image: 'docker:latest', 
+      command: 'cat', 
+      ttyEnabled: true
+    ),
+    containerTemplate(
+      name: 'golang', 
+      image: 'golang:1.8.3', 
+      command: 'cat', 
+      ttyEnabled: true
+    ),
+    containerTemplate(
+      name: 'helm', 
+      image: 'lachlanevenson/k8s-helm:v2.12.1', 
+      command: 'cat', 
+      ttyEnabled: true
+    ),
+    containerTemplate(
+      name: 'kubectl', 
+      image: 'lachlanevenson/k8s-kubectl:v1.14.1', 
+      command: 'cat', 
+      ttyEnabled: true)
+  ],
+  volumes: [
     hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
-]){
+  ]
+){
 
   node ('jenkins-pipeline') {
 
     def pwd = pwd()
     def chart_dir = "${pwd}/charts/croc-hunter"
+    // following vars are defined in stage 'Prepare and SCM' and are used in subsequent stages:
+    def inputFile
+    def config
+    def acct
+    def image_tags_map
+    def image_tags_list 
 
-    checkout scm
+    stage('Prepare and SCM') {
 
-    // read in required jenkins workflow config values
-    def inputFile = readFile('Jenkinsfile.json')
-    def config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
-    println "pipeline config ==> ${config}"
+      // def pwd = pwd()
+      // def chart_dir = "${pwd}/charts/croc-hunter"
 
-    // continue only if pipeline enabled
-    if (!config.pipeline.enabled) {
-        println "pipeline disabled"
-        return
-    }
+      checkout scm
 
-    // set additional git envvars for image tagging
-    pipeline.gitEnvVars()
+      // read in required jenkins workflow config values
+      inputFile = readFile('Jenkinsfile.json')
+      config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+      println "pipeline config ==> ${config}"
 
-    // If pipeline debugging enabled
-    if (config.pipeline.debug) {
-      println "DEBUG ENABLED"
-      sh "env | sort"
-
-      println "Runing kubectl/helm tests"
-      container('kubectl') {
-        pipeline.kubectlTest()
+      // continue only if pipeline enabled
+      if (!config.pipeline.enabled) {
+          println "pipeline disabled"
+          return
       }
+
+      // set additional git envvars for image tagging
+      pipeline.gitEnvVars()
+
+      // If pipeline debugging enabled
+      if (config.pipeline.debug) {
+        println "DEBUG ENABLED"
+        sh "env | sort"
+
+        println "Runing kubectl/helm tests"
+        container('kubectl') {
+          pipeline.kubectlTest()
+        }
+        container('helm') {
+          pipeline.helmConfig()
+        }
+      }
+
+      acct = pipeline.getContainerRepoAcct(config)
+
+      // tag image with version, and branch-commit_id
+      image_tags_map = pipeline.getContainerTags(config)
+
+      // compile tag list
+      image_tags_list = pipeline.getMapValues(image_tags_map)
+
+      // initialize helm container
       container('helm') {
-        pipeline.helmConfig()
+          // init
+          println "initialzing helm client"
+          sh "helm init"
+          println "checking client/server version"
+          sh "helm version"
       }
     }
-
-    def acct = pipeline.getContainerRepoAcct(config)
-
-    // tag image with version, and branch-commit_id
-    def image_tags_map = pipeline.getContainerTags(config)
-
-    // compile tag list
-    def image_tags_list = pipeline.getMapValues(image_tags_map)
 
     stage ('compile and test') {
 
@@ -99,7 +180,7 @@ volumes:[
       }
     }
 
-    stage ('publish container') {
+    stage ('publish docker image') {
 
       container('docker') {
 
@@ -118,16 +199,95 @@ volumes:[
     }
 
     if (env.BRANCH_NAME =~ "PR-*" ) {
-      stage ('deploy to k8s') {
+
+      stage('PR: Deploy Selenium') {
         // Deploy using Helm chart
         container('helm') {
+          // delete and purge selenium, if present
+          if ( !configuration.sharedSelenium ) {
+            echo "delete and purge selenium, if present"
+            sh """
+              helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
+                && helm delete --purge ${seleniumRelease} || true
+            """
+          }
+
+          // always:
+          sh """
+            # upgrade selenium revision. Install, if not present:
+            helm upgrade --install ${seleniumRelease} stable/selenium \
+              --namespace ${seleniumNamespace} \
+              --set chromeDebug.enabled=true \
+              --force
+          """
+          }
+        
+        // // wait for deployments
+        // container('kubectl') {
+        //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
+        //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
+        // }
+
+      }
+
+      // OV DEBUG
+      if (configuration.debug.helmStatus) {
+        stage('DEBUG: get helm status BEFORE Clean App'){
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }
+          container('kubectl'){
+            sh "kubectl -n ${branchNameNormalized} get all || true"
+          }
+        }
+      }
+
+      stage('Clean App'){
+        // Deploy using Helm chart
+        container('helm') {
+
+          // purge deleted versions of ${branchNameNormalized}, if present
+          sh """
+            # purge deleted versions of ${branchNameNormalized}, if present
+            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}\$' \
+              && helm delete --purge ${branchNameNormalized} || true
+          """
+        }
+      }
+
+      if (configuration.debug.helmStatus) {
+        stage('DEBUG: get helm status AFTER Clean App'){
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }
+          container('kubectl') {
+            sh "kubectl -n ${branchNameNormalized} get all || true"
+          }
+        }
+      }
+
+      stage ('PR: Deploy App') {
+        // Deploy using Helm chart
+        container('helm') {
+
+          // purge deleted versions of ${branchNameNormalized}, if present
+          sh """
+            # purge deleted versions of ${branchNameNormalized}, if present
+            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}\$' \
+              && helm delete --purge ${branchNameNormalized} || true
+          """
+
                     // Create secret from Jenkins credentials manager
           withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
           pipeline.helmDeploy(
             dry_run       : false,
-            name          : env.BRANCH_NAME.toLowerCase(),
-            namespace     : env.BRANCH_NAME.toLowerCase(),
+            name          : branchNameNormalized,
+            namespace     : branchNameNormalized,
             chart_dir     : chart_dir,
             set           : [
               "imageTag": image_tags_list.get(0),
@@ -140,23 +300,184 @@ volumes:[
               "imagePullSecrets.username": env.USERNAME,
               "imagePullSecrets.password": env.PASSWORD,
               "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+              "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub:4444/wd/hub",
+              // "test.seleniumHubUrl": 'http://dev-node1.vocon-it.com:31881/wd/hub',
             ]
           )
-          } 
-          //  Run helm tests
-          if (config.app.test) {
-            pipeline.helmTest(
-              name        : env.BRANCH_NAME.toLowerCase()
-            )
           }
+        }
+      }
 
-          // delete test deployment
-          pipeline.helmDelete(
-              name       : env.BRANCH_NAME.toLowerCase()
+      if (configuration.debug.helmStatus) {
+        stage('DEBUG: get helm status AFTER Deploy App'){
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }        
+          container('kubectl'){
+            sh "kubectl -n ${branchNameNormalized} get all || true"
+          }
+        }
+      }
+
+      stage ('PR: Selenium complete?') {
+        // wait for Selenium deployments, if needed
+        container('kubectl') {
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
+        }
+      }
+
+      stage ('PR: Create and Push Selenium Test Docker Image') {
+        container('docker') {
+          pipeline.containerBuildPub(
+              dockerfile: config.test_container_repo.dockerfile,
+              host      : config.test_container_repo.host,
+              acct      : acct,
+              repo      : config.test_container_repo.repo,
+              tags      : image_tags_list,
+              auth_id   : config.test_container_repo.jenkins_creds_id,
+              image_scanning: config.test_container_repo.image_scanning
           )
         }
       }
+
+      stage('PR: get helm status'){
+        container('helm') {
+          // get helm status
+          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
+          echo helmStatusText
+          helmStatus = readJSON text: helmStatusText
+
+          // echo helmStatus
+        }
+
+        // print all resources in namespace:
+        container('kubectl'){
+          sh "kubectl -n ${helmStatus.namespace} get all"
+        }
+      }
+
+      stage('PR: delete completed PODs if present') {
+        container('kubectl'){
+          sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
+        }
+      }
+
+      if (configuration.debug.helmStatus) {
+        stage('DEBUG: get helm status AFTER delete old UI test containers (new way)') {
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }        
+          container('kubectl'){
+            sh "kubectl -n ${branchNameNormalized} get all || true"
+          }
+        }
+      }
+ 
+      stage ('PR: UI Tests') {
+        // depends on: stage('delete old UI test containers, if needed')
+        
+        //  Run helm tests
+
+        if (config.app.test) {
+
+          // run tests
+          container('helm') {
+            testLog = sh "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'"
+          }
+
+          // retrying the helm test:
+          while(configuration.helmTestRetry != null && configuration.helmTestRetry > 0 && testLog ==~ /.*SUCCESS=false*/) {
+            configuration.helmTestRetry = configuration.helmTestRetry - 1
+            echo "helm test has failed. Re-trying..."
+
+            echo "cleaning:"
+            container('kubectl'){
+              sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
+            }
+
+            echo "testing:"
+            container('helm') {
+              testLog = sh "helm test ${branchNameNormalized}  2>&1 || echo 'SUCCESS=false'"
+            }
+          }
+
+          // read helm status
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : branchNameNormalized
+            )
+          }          
+
+          // show logs of test pods:
+          if(configuration.showHelmTestLogs) {
+            container('kubectl') {
+
+              if(helmStatus.info.status.last_test_suite_run != null) {
+                  helmStatus.info.status.last_test_suite_run.results.each { result ->
+                  sh "kubectl -n ${helmStatus.namespace} logs ${result.name} || true"
+                }
+              }
+            }
+          }
+
+          // delete test pods
+          if(!configuration.skipRemoveTestPods) {
+            container('kubectl') {
+              
+              if(helmStatus.info.status.last_test_suite_run != null) {
+                  helmStatus.info.status.last_test_suite_run.results.each { result ->
+                  sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+                }
+              }
+            }
+          }
+
+          // fail, if all test runs have failed
+          if(testLog ==~ /.*SUCCESS=false*/) {
+            echo "ERROR: test has failed. Showing log and exiting"
+            echo "testLog = ${testLog}"
+            sh "exit 1"
+          }
+        }
+      }
+
+      if (configuration.skipRemoveApp == false) {
+        stage ('PR: Remove App') {
+          container('helm') {
+            // delete test deployment
+            pipeline.helmDelete(
+                name       : branchNameNormalized
+            )
+          }
+        }
+      }
+
+      if ( !configuration.sharedSelenium ) {
+        stage('Remove Selenium') {
+          // Delete Helm revision
+          container('helm') {
+            // init
+            println "initialzing helm client"
+            sh "helm init"
+            println "checking client/server version"
+            sh "helm version"
+            
+            println "deleting and purging selenium, if present"
+            sh """
+              helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
+                && helm delete --purge ${seleniumRelease}
+            """
+          }
+        }
+      }
     }
+
+   
 
     // deploy only the master branch
     if (env.BRANCH_NAME == 'master') {

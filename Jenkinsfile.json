@@ -20,6 +20,16 @@
     "dockerfile": "./",
     "image_scanning": false
   },
+  "test_container_repo": {
+    "host": "docker.io",
+    "master_acct": "oveits",
+    "alt_acct": "oveits",
+    "jenkins_creds_id": "oveits_docker_hub",
+    "repo": "crochunter-tests",
+    "dockeremail": ".",
+    "dockerfile": "./tests/",
+    "image_scanning": false
+  },
   "pipeline": {
       "enabled": true,
       "debug": false,

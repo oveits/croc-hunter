@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ template "fullname" . }}-web-selenium-test"
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: {{ template "fullname" . }}-web-selenium-test
+      image: "oveits/crochunter-tests:PR-6"
+      env:
+        # TODO: replace the next two values by dynamic content
+        - name: SELENIUM_HUB_URL
+          value: "{{.Values.test.seleniumHubUrl}}"
+        - name: INGRESS_HOSTNAME
+          #value: "crochunter.vocon-it.com"
+          value: "{{ template "fullname" . }}:{{.Values.servicePort}}"
+          #value: "{{.Values.ingress.hostname}}"
+      #command: ["curl"]
+      #args: ["retry 3", "retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
+  restartPolicy: Never
