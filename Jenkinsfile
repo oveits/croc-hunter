@@ -389,8 +389,8 @@ podTemplate(label: 'jenkins-pipeline',
             success = sh "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'"
           }
 
-          if(success ==~ /.*Error: transport is closing.*/){
-            echo "helm test has failed with 'Error: transport is closing'. Re-trying..."
+          if(success ==~ /.*SUCCESS=false*/){
+            echo "helm test has failed. Re-trying..."
 
             echo "cleaning:"
             container('kubectl'){
