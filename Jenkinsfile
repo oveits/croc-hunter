@@ -384,8 +384,9 @@ podTemplate(label: 'jenkins-pipeline',
         if (config.app.test) {
 
           // run tests
+          def success
           container('helm') {
-            def success = sh "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'"
+            success = sh "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'"
           }
 
           if(success ==~ /.*Error: transport is closing.*/){
