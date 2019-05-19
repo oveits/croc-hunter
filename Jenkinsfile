@@ -303,7 +303,7 @@ podTemplate(label: 'jenkins-pipeline',
               "imagePullSecrets.password": env.PASSWORD,
               "imagePullSecrets.email": "ServicePrincipal@AzureRM",
               "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
-              "test.ingressHostname": "http://${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
+              "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
             ]
           )
           }
