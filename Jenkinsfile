@@ -5,7 +5,16 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
+// INIT
 def pipeline = new io.estrado.Pipeline()
+def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
+def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
+// def sharedSelenium = true
+def seleniumRelease
+def seleniumNamespace = branchNameNormalized
+seleniumRelease = branchNameNormalized + '-selenium'
+def helmStatus
+def testLog
 
 def configuration = [
   // sharedSelenium:true,
@@ -13,11 +22,11 @@ def configuration = [
   skipRemoveTestPods:false,
   showHelmTestLogs:true,
   debug:[
-    helmStatus:true
+    helmStatus:false
   ]
 ]
 
-// defaults
+// DEFAULTS
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
 configuration.sharedSelenium        = configuration.sharedSelenium != null     ?    configuration.sharedSelenium : false
 configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp : false
@@ -26,16 +35,8 @@ configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?
 configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus : false
 configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry : (env.getProperty('HELM_TEST_RETRY') != null ? env.getProperty('HELM_TEST_RETRY').toInteger() : 0)
 // configuration.helmTestRetry
+configuration.sharedSelenium == true ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
 
-def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
-def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
-// def sharedSelenium = true
-def seleniumRelease
-def seleniumNamespace = branchNameNormalized
-// sharedSelenium ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
-seleniumRelease = branchNameNormalized + '-selenium'
-def helmStatus
-def testLog
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
@@ -198,9 +199,9 @@ podTemplate(label: 'jenkins-pipeline',
 
     }
 
-    if (env.BRANCH_NAME =~ "PR-*" ) {
+    if (env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop") {
 
-      stage('PR: Deploy Selenium') {
+      stage('Deploy Selenium') {
         // Deploy using Helm chart
         container('helm') {
           // delete and purge selenium, if present
@@ -221,12 +222,6 @@ podTemplate(label: 'jenkins-pipeline',
               --force
           """
           }
-        
-        // // wait for deployments
-        // container('kubectl') {
-        //   sh "kubectl rollout status --watch deployment/selenium-selenium-hub -n selenium --timeout=5m"
-        //   sh "kubectl rollout status --watch deployment/selenium-selenium-chrome-debug -n selenium --timeout=5m"
-        // }
 
       }
 
