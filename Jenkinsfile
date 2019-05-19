@@ -39,7 +39,7 @@ boolean skipRemoveApp        = configuration.skipRemoveApp
 boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
 boolean showHelmTestLogs     = configuration.showHelmTestLogs
 boolean debugHelmStatus      = configuration.debug.helmStatus
-boolean helmTestRetry        = configuration.helmTestRetry
+Integer helmTestRetry        = configuration.helmTestRetry
 
 def helmStatus
 String testLog
