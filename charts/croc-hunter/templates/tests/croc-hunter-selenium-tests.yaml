@@ -13,8 +13,9 @@ spec:
         - name: SELENIUM_HUB_URL
           value: "{{.Values.test.seleniumHubUrl}}"
         - name: INGRESS_HOSTNAME
+          value: "{{.Values.test.ingressHostname}}"
           #value: "crochunter.vocon-it.com"
-          value: "{{ template "fullname" . }}:{{.Values.servicePort}}"
+          # value: "{{ template "fullname" . }}:{{.Values.servicePort}}" 
           #value: "{{.Values.ingress.hostname}}"
       #command: ["curl"]
       #args: ["retry 3", "retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
