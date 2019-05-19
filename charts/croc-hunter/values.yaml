@@ -37,4 +37,4 @@ commit:
   repo : "oveits/crochunter"
 test:
   seleniumHubUrl: "http://selenium-hub-url:4444/wd/hub"
-  ingressHostname: "{{ template "fullname" . }}:{{.Values.servicePort}}"
+  ingressHostname: "{{.Values.ingress.hostname}}"
