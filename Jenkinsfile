@@ -33,7 +33,7 @@ configuration.helmTestRetry         = configuration.helmTestRetry != null      ?
 def pipeline = new io.estrado.Pipeline()
 String  branchNameNormalized = configuration.branchNameNormalized
 boolean sharedSelenium       = configuration.sharedSelenium
-boolean seleniumRelease      = configuration.seleniumRelease
+String  seleniumRelease      = configuration.seleniumRelease
 String  seleniumNamespace    = configuration.seleniumNamespace
 boolean skipRemoveApp        = configuration.skipRemoveApp
 boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
