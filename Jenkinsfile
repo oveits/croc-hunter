@@ -35,8 +35,7 @@ configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?
 configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus : false
 configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry : (env.getProperty('HELM_TEST_RETRY') != null ? env.getProperty('HELM_TEST_RETRY').toInteger() : 0)
 // configuration.helmTestRetry
-configuration.sharedSelenium == true ? seleniumRelease = 'selenium' : seleniumRelease='selenium-' + uniqueBranchName
-
+seleniumRelease                     = configuration.sharedSelenium == true     ?    'selenium'                  : (seleniumRelease='selenium-' + uniqueBranchName)
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
