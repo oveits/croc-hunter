@@ -17,7 +17,7 @@ def helmStatus
 def testLog
 
 def configuration = [
-  // sharedSelenium:true,
+  sharedSelenium:true,
   skipRemoveApp:true, 
   skipRemoveTestPods:false,
   showHelmTestLogs:true,
