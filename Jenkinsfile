@@ -5,17 +5,6 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
-// INIT
-def pipeline = new io.estrado.Pipeline()
-def branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
-def uniqueBranchName = branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
-// def sharedSelenium = true
-def seleniumRelease
-def seleniumNamespace = branchNameNormalized
-seleniumRelease = branchNameNormalized + '-selenium'
-def helmStatus
-def testLog
-
 def configuration = [
   sharedSelenium:true,
   skipRemoveApp:true, 
@@ -28,14 +17,33 @@ def configuration = [
 
 // DEFAULTS
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
-configuration.sharedSelenium        = configuration.sharedSelenium != null     ?    configuration.sharedSelenium : false
-configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp : false
-configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods : false
-configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs : true
-configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus : false
-configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry : (env.getProperty('HELM_TEST_RETRY') != null ? env.getProperty('HELM_TEST_RETRY').toInteger() : 0)
-// configuration.helmTestRetry
-seleniumRelease                     = configuration.sharedSelenium == true     ?    'selenium'                  : (seleniumRelease='selenium-' + uniqueBranchName)
+configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
+// not used, currently:
+// configuration.uniqueBranchName      = configuration.branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
+configuration.sharedSelenium        = configuration.sharedSelenium != null     ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
+configuration.seleniumRelease       = configuration.sharedSelenium == true     ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
+configuration.seleniumNamespace     = configuration.sharedSelenium == true     ?    'selenium'                         : configuration.branchNameNormalized
+configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
+configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
+configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs     : (env.getProperty('SHOW_HELM_TEST_LOGS')   != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')     == "true" ? true : false) : true)
+configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
+configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
+
+// INIT
+def pipeline = new io.estrado.Pipeline()
+String  branchNameNormalized = configuration.branchNameNormalized
+boolean sharedSelenium       = configuration.sharedSelenium
+boolean seleniumRelease      = configuration.seleniumRelease
+String  seleniumNamespace    = configuration.seleniumNamespace
+boolean skipRemoveApp        = configuration.skipRemoveApp
+boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
+boolean showHelmTestLogs     = configuration.showHelmTestLogs
+boolean debugHelmStatus      = configuration.debug.helmStatus
+boolean helmTestRetry        = configuration.helmTestRetry
+
+def helmStatus
+String testLog
+
 
 podTemplate(label: 'jenkins-pipeline', 
   containers: [
@@ -204,7 +212,7 @@ podTemplate(label: 'jenkins-pipeline',
         // Deploy using Helm chart
         container('helm') {
           // delete and purge selenium, if present
-          if ( !configuration.sharedSelenium ) {
+          if ( !sharedSelenium ) {
             echo "delete and purge selenium, if present"
             sh """
               helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
@@ -225,7 +233,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       // OV DEBUG
-      if (configuration.debug.helmStatus) {
+      if (debugHelmStatus) {
         stage('DEBUG: get helm status BEFORE Clean App'){
           container('helm') {
             helmStatus = pipeline.helmStatus(
@@ -251,7 +259,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      if (configuration.debug.helmStatus) {
+      if (debugHelmStatus) {
         stage('DEBUG: get helm status AFTER Clean App'){
           container('helm') {
             helmStatus = pipeline.helmStatus(
@@ -302,7 +310,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      if (configuration.debug.helmStatus) {
+      if (debugHelmStatus) {
         stage('DEBUG: get helm status AFTER Deploy App'){
           container('helm') {
             helmStatus = pipeline.helmStatus(
@@ -359,7 +367,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      if (configuration.debug.helmStatus) {
+      if (debugHelmStatus) {
         stage('DEBUG: get helm status AFTER delete old UI test containers (new way)') {
           container('helm') {
             helmStatus = pipeline.helmStatus(
@@ -385,8 +393,8 @@ podTemplate(label: 'jenkins-pipeline',
           }
 
           // retrying the helm test:
-          while(configuration.helmTestRetry != null && configuration.helmTestRetry > 0 && testLog ==~ /.*SUCCESS=false*/) {
-            configuration.helmTestRetry = configuration.helmTestRetry - 1
+          while(helmTestRetry != null && helmTestRetry > 0 && testLog ==~ /.*SUCCESS=false*/) {
+            helmTestRetry = helmTestRetry - 1
             echo "helm test has failed. Re-trying..."
 
             echo "cleaning:"
@@ -408,7 +416,7 @@ podTemplate(label: 'jenkins-pipeline',
           }          
 
           // show logs of test pods:
-          if(configuration.showHelmTestLogs) {
+          if(showHelmTestLogs) {
             container('kubectl') {
 
               if(helmStatus.info.status.last_test_suite_run != null) {
@@ -420,7 +428,7 @@ podTemplate(label: 'jenkins-pipeline',
           }
 
           // delete test pods
-          if(!configuration.skipRemoveTestPods) {
+          if(!skipRemoveTestPods) {
             container('kubectl') {
               
               if(helmStatus.info.status.last_test_suite_run != null) {
@@ -440,7 +448,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      if (configuration.skipRemoveApp == false) {
+      if (skipRemoveApp == false) {
         stage ('PR: Remove App') {
           container('helm') {
             // delete test deployment
@@ -451,7 +459,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      if ( !configuration.sharedSelenium ) {
+      if ( !sharedSelenium ) {
         stage('Remove Selenium') {
           // Delete Helm revision
           container('helm') {
