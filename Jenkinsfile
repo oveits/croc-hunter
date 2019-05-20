@@ -453,6 +453,11 @@ podTemplate(label: 'jenkins-pipeline',
           }
 
           // fail, if all test runs have failed
+          echo "testLog = ${testLog}"
+          echo "(testLog ==~ /.*SUCCESS=false.*/) = ${(testLog ==~ /.*SUCCESS=false.*/)}"
+          echo "(testLog ==~ /SUCCESS=false/) = ${(testLog ==~ /SUCCESS=false/)}"
+          echo "(testLog ==~ /\.*SUCCESS=false\.*/) = ${(testLog ==~ /\.*SUCCESS=false\.*/)}"
+
           if(testLog ==~ /.*SUCCESS=false.*/) {
             echo "ERROR: test has failed. Showing log and exiting"
             echo "testLog = ${testLog}"
