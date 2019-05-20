@@ -5,15 +5,17 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
-def configuration = [
-  sharedSelenium:true,
-  skipRemoveApp:true, 
-  skipRemoveTestPods:false,
-  showHelmTestLogs:true,
-  debug:[
-    helmStatus:false
-  ]
-]
+def configuration = [:]
+
+// configuration = [
+//   sharedSelenium:true,
+//   skipRemoveApp:true, 
+//   skipRemoveTestPods:false,
+//   showHelmTestLogs:true,
+//   debug:[
+//     helmStatus:false
+//   ]
+// ]
 
 // DEFAULTS
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
