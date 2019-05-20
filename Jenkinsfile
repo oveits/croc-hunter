@@ -29,6 +29,16 @@ configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?
 configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
 configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
 
+// vars/configurationPrint.groovy
+//String call(Map configuration){
+String configurationPrintString = "Configuration:\n"
+  for (s in configuration) {
+    configurationPrintString += "${s.key.padRight(30)}:\t${s.value}\n"
+  }
+// return configurationPrintString
+// }
+echo configurationPrintString
+
 // INIT
 def pipeline = new io.estrado.Pipeline()
 String  branchNameNormalized = configuration.branchNameNormalized
