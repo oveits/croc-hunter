@@ -41,6 +41,7 @@ String configurationPrintString = "Configuration:\n"
 // return configurationPrintString
 // }
 echo configurationPrintString
+echo "DEBUG: OV: Configuration = ${configuration}"
 
 // INIT
 def pipeline = new io.estrado.Pipeline()
