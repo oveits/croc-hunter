@@ -28,6 +28,7 @@ configuration.seleniumNamespace     = configuration.sharedSelenium == true     ?
 configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
 configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
 configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs     : (env.getProperty('SHOW_HELM_TEST_LOGS')   != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')     == "true" ? true : false) : true)
+configuration.debug                 = configuration.debug != null              ?    configuration.debug                : [:]
 configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
 configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
 
