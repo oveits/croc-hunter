@@ -402,11 +402,11 @@ podTemplate(label: 'jenkins-pipeline',
 
           // run tests
           container('helm') {
-            testLog = sh "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'"
+            testLog = sh script: "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'", returnStdout: true
           }
 
           // retrying the helm test:
-          while(helmTestRetry != null && helmTestRetry > 0 && testLog ==~ /.*SUCCESS=false*/) {
+          while(helmTestRetry != null && helmTestRetry > 0 && testLog ==~ /SUCCESS=false/) {
             helmTestRetry = helmTestRetry - 1
             echo "helm test has failed. Re-trying..."
 
@@ -417,7 +417,7 @@ podTemplate(label: 'jenkins-pipeline',
 
             echo "testing:"
             container('helm') {
-              testLog = sh "helm test ${branchNameNormalized}  2>&1 || echo 'SUCCESS=false'"
+              testLog = sh script: "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'", returnStdout: true
             }
           }
 
