@@ -92,7 +92,14 @@ podTemplate(label: 'jenkins-pipeline',
       name: 'kubectl', 
       image: 'lachlanevenson/k8s-kubectl:v1.14.1', 
       command: 'cat', 
-      ttyEnabled: true)
+      ttyEnabled: true
+    ),
+    containerTemplate(
+      name: 'curl', 
+      image: 'tutum/curl:trusty', 
+      command: 'cat', 
+      ttyEnabled: true
+    )    
   ],
   volumes: [
     hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
@@ -241,9 +248,22 @@ podTemplate(label: 'jenkins-pipeline',
               --set chromeDebug.enabled=true \
               --force
           """
-          }
+        }
+
+        // wait for Selenium deployments, if needed
+        container('kubectl') {
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
+          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
+        }
+
+        // wait for the chrome node to be registered at the hub
+        container('curl') {
+          sh "until curl -v -s -D - http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/grid/console | grep -m 1 'browserName=chrome'; do echo 'still waiting for a chrome node to register with the Selenium hub...' && sleep 5 ; done"
+        }
 
       }
+
+      
 
       // OV DEBUG
       if (debugHelmStatus) {
@@ -341,6 +361,11 @@ podTemplate(label: 'jenkins-pipeline',
         container('kubectl') {
           sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
           sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
+        }
+
+        // wait for the chrome node to be registered at the hub
+        container('curl') {
+          sh "until curl -v -s -D - http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/grid/console | grep -m 1 'browserName=chrome'; do echo 'still waiting for a chrome node to register with the Selenium hub...' && sleep 5 ; done"
         }
       }
 
