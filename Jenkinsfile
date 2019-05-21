@@ -485,7 +485,7 @@ podTemplate(label: 'jenkins-pipeline',
           echo "(testLog ==~ /SUCCESS=false/) = ${(testLog ==~ /SUCCESS=false/)}"
           echo "(testLog ==~ /\\.*SUCCESS=false\\.*/) = ${(testLog ==~ /\\.*SUCCESS=false\\.*/)}"
           echo "(testLog =~ /SUCCESS=false/) = ${(testLog =~ /SUCCESS=false/)}"
-          echo "(testLog =~ /(?sm).*SUCCESS=false.*/) = ${(testLog =~ /(?sm).*SUCCESS=false.*/)}"
+          echo "(testLog ==~ /(?sm).*SUCCESS=false.*/) = ${(testLog ==~ /(?sm).*SUCCESS=false.*/)}"
 
           // sh "echo testLog | grep 'SUCCESS=false' && echo 'ERROR: test has failed. Showing log and exiting' && echo 'testLog = ${testLog}' && exit 1"
 
