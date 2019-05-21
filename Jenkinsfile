@@ -405,8 +405,9 @@ podTemplate(label: 'jenkins-pipeline',
             testLog = sh script: "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'", returnStdout: true
           }
 
+          echo ""
           // retrying the helm test:
-          while(helmTestRetry != null && helmTestRetry > 0 && testLog ==~ /SUCCESS=false/) {
+          while(helmTestRetry != null && helmTestRetry > 0 && testLog ==~ /(?sm).*SUCCESS=false.*/) {
             helmTestRetry = helmTestRetry - 1
             echo "helm test has failed. Re-trying..."
 
