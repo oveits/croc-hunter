@@ -250,16 +250,17 @@ podTemplate(label: 'jenkins-pipeline',
           """
         }
 
-        // wait for Selenium deployments, if needed
-        container('kubectl') {
-          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
-          sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
-        }
+        // will be done later in order to save time:
+        // // wait for Selenium deployments, if needed
+        // container('kubectl') {
+        //   sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
+        //   sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
+        // }
 
-        // wait for the chrome node to be registered at the hub
-        container('curl') {
-          sh "until curl -v -s -D - http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/grid/console | grep -m 1 'browserName=chrome'; do echo 'still waiting for a chrome node to register with the Selenium hub...' && sleep 5 ; done"
-        }
+        // // wait for the chrome node to be registered at the hub
+        // container('curl') {
+        //   sh "until curl -v -s -D - http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/grid/console | grep -m 1 'browserName=chrome'; do echo 'still waiting for a chrome node to register with the Selenium hub...' && sleep 5 ; done"
+        // }
 
       }
 
