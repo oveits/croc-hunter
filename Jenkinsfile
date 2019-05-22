@@ -20,10 +20,11 @@ def configuration = [:]
 // DEFAULTS
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
 // configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.digest('MD5').take(6)
-configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.decodeBase64().take(6)
 // .decodeBase64() 
 // not used, currently:
 // configuration.uniqueBranchName      = configuration.branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
+
+// configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.decodeBase64().take(6)
 configuration.alwaysPerformTests    = configuration.alwaysPerformTests != null  ?    configuration.alwaysPerformTests   : (env.getProperty('ALWAYS_PERFORM_TESTS')  != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')  == "true"   ? true : false) : false)
 configuration.sharedSelenium        = configuration.sharedSelenium != null      ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
 configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
@@ -48,7 +49,7 @@ echo configurationPrintString
 // INIT
 def pipeline = new io.estrado.Pipeline()
 boolean alwaysPerformTests   = configuration.alwaysPerformTests
-String  branchNameNormalized = configuration.branchNameNormalized
+// String  branchNameNormalized = configuration.branchNameNormalized
 boolean sharedSelenium       = configuration.sharedSelenium
 String  seleniumRelease      = configuration.seleniumRelease
 String  seleniumNamespace    = configuration.seleniumNamespace
@@ -60,6 +61,7 @@ Integer helmTestRetry        = configuration.helmTestRetry
 
 def helmStatus
 String testLog
+String branchNameNormalized  = ""
 
 
 podTemplate(label: 'jenkins-pipeline', 
@@ -119,7 +121,7 @@ podTemplate(label: 'jenkins-pipeline',
     def config
     def acct
     def image_tags_map
-    def image_tags_list 
+    def image_tags_list
 
     stage('Prepare and SCM') {
 
@@ -127,6 +129,13 @@ podTemplate(label: 'jenkins-pipeline',
       // def chart_dir = "${pwd}/charts/croc-hunter"
 
       checkout scm
+
+      String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6", returnStdout: true
+      echo "digest = ${digest}"
+      branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + digest
+      echo "branchNameNormalized = ${branchNameNormalized}"
+
+      sh "exit 1"
 
       // read in required jenkins workflow config values
       inputFile = readFile('Jenkinsfile.json')
