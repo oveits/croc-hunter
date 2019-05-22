@@ -19,18 +19,24 @@ def configuration = [:]
 
 // DEFAULTS
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
-configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
+// configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.digest('MD5').take(6)
+// .decodeBase64() 
 // not used, currently:
 // configuration.uniqueBranchName      = configuration.branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
-configuration.sharedSelenium        = configuration.sharedSelenium != null     ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
-configuration.seleniumRelease       = configuration.sharedSelenium == true     ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
-configuration.seleniumNamespace     = configuration.sharedSelenium == true     ?    'selenium'                         : configuration.branchNameNormalized
-configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
-configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
-configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs     : (env.getProperty('SHOW_HELM_TEST_LOGS')   != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')     == "true" ? true : false) : true)
-configuration.debug                 = configuration.debug != null              ?    configuration.debug                : [:]
-configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
-configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
+
+// configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.decodeBase64().take(6)
+configuration.alwaysPerformTests    = configuration.alwaysPerformTests != null  ?    configuration.alwaysPerformTests   : (env.getProperty('ALWAYS_PERFORM_TESTS')  != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')  == "true"   ? true : false) : false)
+// debugPipeline
+configuration.debugPipeline         = configuration.debugPipeline != null       ?    configuration.debugPipeline        : (env.getProperty('DEBUG_PIPELINE')        != null ? (env.getProperty('DEBUG_PIPELINE')          == "true"   ? true : false) : false)
+configuration.sharedSelenium        = configuration.sharedSelenium != null      ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
+// configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
+// configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'                         : configuration.branchNameNormalized
+configuration.skipRemoveApp         = configuration.skipRemoveApp != null       ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
+configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null  ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
+configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null    ?    configuration.showHelmTestLogs     : (env.getProperty('SHOW_HELM_TEST_LOGS')   != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')     == "true" ? true : false) : true)
+configuration.debug                 = configuration.debug != null               ?    configuration.debug                : [:]
+configuration.debug.helmStatus      = configuration.debug.helmStatus != null    ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
+configuration.helmTestRetry         = configuration.helmTestRetry != null       ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
 
 // vars/configurationPrint.groovy
 //String call(Map configuration){
@@ -44,10 +50,12 @@ echo configurationPrintString
 
 // INIT
 def pipeline = new io.estrado.Pipeline()
-String  branchNameNormalized = configuration.branchNameNormalized
+boolean alwaysPerformTests   = configuration.alwaysPerformTests
+// String  branchNameNormalized = configuration.branchNameNormalized
+boolean debugPipeline        = configuration.debugPipeline
 boolean sharedSelenium       = configuration.sharedSelenium
-String  seleniumRelease      = configuration.seleniumRelease
-String  seleniumNamespace    = configuration.seleniumNamespace
+// String  seleniumRelease      = configuration.seleniumRelease
+// String  seleniumNamespace    = configuration.seleniumNamespace
 boolean skipRemoveApp        = configuration.skipRemoveApp
 boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
 boolean showHelmTestLogs     = configuration.showHelmTestLogs
@@ -55,7 +63,10 @@ boolean debugHelmStatus      = configuration.debug.helmStatus
 Integer helmTestRetry        = configuration.helmTestRetry
 
 def helmStatus
-String testLog
+String  testLog
+String  branchNameNormalized  = "to-be-changed"
+String  seleniumRelease       = "to-be-changed"
+String  seleniumNamespace     = "to-be-changed"
 
 
 podTemplate(label: 'jenkins-pipeline', 
@@ -115,7 +126,7 @@ podTemplate(label: 'jenkins-pipeline',
     def config
     def acct
     def image_tags_map
-    def image_tags_list 
+    def image_tags_list
 
     stage('Prepare and SCM') {
 
@@ -123,6 +134,23 @@ podTemplate(label: 'jenkins-pipeline',
       // def chart_dir = "${pwd}/charts/croc-hunter"
 
       checkout scm
+
+      // unique branchNameNormalized also for branches with very long name:
+      branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
+      if (branchNameNormalized.length() > 30) {
+        String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6 | tr -d '\\n' | tr -d '\\r'", returnStdout: true
+        branchNameNormalized = branchNameNormalized.take(24) + '-' + digest
+        if (debugPipeline) {
+          echo "digest = ${digest}"
+        }
+      }
+      echo "branchNameNormalized = ${branchNameNormalized}"
+      configuration.branchNameNormalized = branchNameNormalized
+
+      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
+      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'                         : configuration.branchNameNormalized
+      seleniumRelease   = configuration.seleniumRelease
+      seleniumNamespace = configuration.seleniumNamespace
 
       // read in required jenkins workflow config values
       inputFile = readFile('Jenkinsfile.json')
@@ -226,7 +254,7 @@ podTemplate(label: 'jenkins-pipeline',
 
     }
 
-    if (env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop") {
+    if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop") {
 
       stage('Deploy Selenium') {
         // Deploy using Helm chart

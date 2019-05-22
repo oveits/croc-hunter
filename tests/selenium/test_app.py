@@ -59,13 +59,13 @@ def test_confirm_canvas_hud(browser):
 
 
 # TODO: uncomment:
-# def test_confirm_release_name(browser):
-#     browser.get("http://{}".format(hostname))
-#     element = browser.find_element(By.XPATH, '//div[@class="details"]')
-#     assert release_name in element.text
+def test_confirm_release_name(browser):
+    browser.get("http://{}".format(hostname))
+    element = browser.find_element(By.XPATH, '//div[@class="details"]')
+    assert release_name in element.text
 
 
-# def test_confirm_commit_sha(browser):
-#     browser.get("http://{}".format(hostname))
-#     element = browser.find_element(By.XPATH, '//div[@class="details"]')
-#     assert commit_sha in element.text
+def test_confirm_commit_sha(browser):
+    browser.get("http://{}".format(hostname))
+    element = browser.find_element(By.XPATH, '//div[@class="details"]')
+    assert commit_sha in element.text
