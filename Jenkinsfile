@@ -138,7 +138,7 @@ podTemplate(label: 'jenkins-pipeline',
       // unique branchNameNormalized also for branches with very long name:
       branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
       if (branchNameNormalized.length() > 36) {
-        String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6", returnStdout: true
+        String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6 | tr -d '\\n' | tr -d '\\r'", returnStdout: true
         branchNameNormalized = branchNameNormalized.take(30) + '-' + digest
         if (debugPipeline) {
           echo "digest = ${digest}"
