@@ -26,6 +26,8 @@ def configuration = [:]
 
 // configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.decodeBase64().take(6)
 configuration.alwaysPerformTests    = configuration.alwaysPerformTests != null  ?    configuration.alwaysPerformTests   : (env.getProperty('ALWAYS_PERFORM_TESTS')  != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')  == "true"   ? true : false) : false)
+// debugPipeline
+configuration.debugPipeline         = configuration.debugPipeline != null       ?    configuration.debugPipeline        : (env.getProperty('DEBUG_PIPELINE')        != null ? (env.getProperty('DEBUG_PIPELINE')          == "true"   ? true : false) : false)
 configuration.sharedSelenium        = configuration.sharedSelenium != null      ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
 configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
 configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'                         : configuration.branchNameNormalized
@@ -50,6 +52,7 @@ echo configurationPrintString
 def pipeline = new io.estrado.Pipeline()
 boolean alwaysPerformTests   = configuration.alwaysPerformTests
 // String  branchNameNormalized = configuration.branchNameNormalized
+boolean debugPipeline        = configuration.debugPipeline
 boolean sharedSelenium       = configuration.sharedSelenium
 String  seleniumRelease      = configuration.seleniumRelease
 String  seleniumNamespace    = configuration.seleniumNamespace
@@ -130,12 +133,16 @@ podTemplate(label: 'jenkins-pipeline',
 
       checkout scm
 
-      String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6", returnStdout: true
-      echo "digest = ${digest}"
-      branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + digest
+      // unique branchNameNormalized also for branches with very long name:
+      branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
+      if (branchNameNormalized.length() > 36) {
+        String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6", returnStdout: true
+        branchNameNormalized = branchNameNormalized.take(30) + '-' + digest
+        if (debugPipeline) {
+          echo "digest = ${digest}"
+        }
+      }
       echo "branchNameNormalized = ${branchNameNormalized}"
-
-      sh "exit 1"
 
       // read in required jenkins workflow config values
       inputFile = readFile('Jenkinsfile.json')
