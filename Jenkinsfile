@@ -28,8 +28,8 @@ def configuration = [:]
 configuration.alwaysPerformTests    = configuration.alwaysPerformTests != null  ?    configuration.alwaysPerformTests   : (env.getProperty('ALWAYS_PERFORM_TESTS')  != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')  == "true"   ? true : false) : false)
 // debugPipeline
 configuration.debugPipeline         = configuration.debugPipeline != null       ?    configuration.debugPipeline        : (env.getProperty('DEBUG_PIPELINE')        != null ? (env.getProperty('DEBUG_PIPELINE')          == "true"   ? true : false) : false)
-configuration.sharedSelenium        = configuration.sharedSelenium != null      ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
-configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
+// configuration.sharedSelenium        = configuration.sharedSelenium != null      ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
+// configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
 configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'                         : configuration.branchNameNormalized
 configuration.skipRemoveApp         = configuration.skipRemoveApp != null       ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
 configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null  ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
@@ -54,8 +54,8 @@ boolean alwaysPerformTests   = configuration.alwaysPerformTests
 // String  branchNameNormalized = configuration.branchNameNormalized
 boolean debugPipeline        = configuration.debugPipeline
 boolean sharedSelenium       = configuration.sharedSelenium
-String  seleniumRelease      = configuration.seleniumRelease
-String  seleniumNamespace    = configuration.seleniumNamespace
+// String  seleniumRelease      = configuration.seleniumRelease
+// String  seleniumNamespace    = configuration.seleniumNamespace
 boolean skipRemoveApp        = configuration.skipRemoveApp
 boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
 boolean showHelmTestLogs     = configuration.showHelmTestLogs
@@ -63,8 +63,10 @@ boolean debugHelmStatus      = configuration.debug.helmStatus
 Integer helmTestRetry        = configuration.helmTestRetry
 
 def helmStatus
-String testLog
-String branchNameNormalized  = ""
+String  testLog
+String  branchNameNormalized  = "to-be-changed"
+String  seleniumRelease       = "to-be-changed"
+String  seleniumNamespace     = "to-be-changed"
 
 
 podTemplate(label: 'jenkins-pipeline', 
@@ -143,6 +145,12 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
       echo "branchNameNormalized = ${branchNameNormalized}"
+      configuration.branchNameNormalized = branchNameNormalized
+
+      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
+      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'                         : configuration.branchNameNormalized
+      seleniumRelease   = configuration.seleniumRelease
+      seleniumNamespace = configuration.seleniumNamespace
 
       // read in required jenkins workflow config values
       inputFile = readFile('Jenkinsfile.json')
