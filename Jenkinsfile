@@ -19,7 +19,7 @@ def configuration = [:]
 
 // DEFAULTS
 // configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
-configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30)
+configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.digest('MD2').take(6)
 // not used, currently:
 // configuration.uniqueBranchName      = configuration.branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
 configuration.alwaysPerformTests    = configuration.alwaysPerformTests != null  ?    configuration.alwaysPerformTests   : (env.getProperty('ALWAYS_PERFORM_TESTS')  != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')  == "true"   ? true : false) : false)
