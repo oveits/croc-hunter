@@ -22,15 +22,16 @@ def configuration = [:]
 configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
 // not used, currently:
 // configuration.uniqueBranchName      = configuration.branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
-configuration.sharedSelenium        = configuration.sharedSelenium != null     ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
-configuration.seleniumRelease       = configuration.sharedSelenium == true     ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
-configuration.seleniumNamespace     = configuration.sharedSelenium == true     ?    'selenium'                         : configuration.branchNameNormalized
-configuration.skipRemoveApp         = configuration.skipRemoveApp != null      ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
-configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
-configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null   ?    configuration.showHelmTestLogs     : (env.getProperty('SHOW_HELM_TEST_LOGS')   != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')     == "true" ? true : false) : true)
-configuration.debug                 = configuration.debug != null              ?    configuration.debug                : [:]
-configuration.debug.helmStatus      = configuration.debug.helmStatus != null   ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
-configuration.helmTestRetry         = configuration.helmTestRetry != null      ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
+configuration.alwaysPerformTests    = configuration.alwaysPerformTests != null  ?    configuration.alwaysPerformTests   : (env.getProperty('ALWAYS_PERFORM_TESTS')  != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')  == "true"   ? true : false) : false)
+configuration.sharedSelenium        = configuration.sharedSelenium != null      ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
+configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
+configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'                         : configuration.branchNameNormalized
+configuration.skipRemoveApp         = configuration.skipRemoveApp != null       ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
+configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null  ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
+configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null    ?    configuration.showHelmTestLogs     : (env.getProperty('SHOW_HELM_TEST_LOGS')   != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')     == "true" ? true : false) : true)
+configuration.debug                 = configuration.debug != null               ?    configuration.debug                : [:]
+configuration.debug.helmStatus      = configuration.debug.helmStatus != null    ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
+configuration.helmTestRetry         = configuration.helmTestRetry != null       ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
 
 // vars/configurationPrint.groovy
 //String call(Map configuration){
@@ -44,6 +45,7 @@ echo configurationPrintString
 
 // INIT
 def pipeline = new io.estrado.Pipeline()
+boolean alwaysPerformTests   = configuration.alwaysPerformTests
 String  branchNameNormalized = configuration.branchNameNormalized
 boolean sharedSelenium       = configuration.sharedSelenium
 String  seleniumRelease      = configuration.seleniumRelease
@@ -226,7 +228,7 @@ podTemplate(label: 'jenkins-pipeline',
 
     }
 
-    if (env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop") {
+    if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop") {
 
       stage('Deploy Selenium') {
         // Deploy using Helm chart
