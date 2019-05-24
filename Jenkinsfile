@@ -247,7 +247,7 @@ podTemplate(label: 'jenkins-pipeline',
 
     }
 
-    if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop") {
+    if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop" || env.BRANCH_NAME ==~ /master/) {
 
       stage('Deploy Selenium') {
         // Deploy using Helm chart
@@ -550,10 +550,9 @@ podTemplate(label: 'jenkins-pipeline',
     }
 
    
-
     // deploy only the master branch
-    if (env.BRANCH_NAME == 'master') {
-      stage ('deploy to k8s') {
+    if (env.BRANCH_NAME == 'prod') {
+      stage ('deploy to k8s PROD') {
           // Deploy using Helm chart
         container('helm') {
                     // Create secret from Jenkins credentials manager
