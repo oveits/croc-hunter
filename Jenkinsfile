@@ -7,6 +7,7 @@
 
 def configuration = [:]
 
+// Example:
 // configuration = [
 //   sharedSelenium:true,
 //   skipRemoveApp:true, 
@@ -18,19 +19,11 @@ def configuration = [:]
 // ]
 
 // DEFAULTS
-// configuration.skipRemoveApp    = pipeline.setConfiguration (configuration.skipRemoveApp, env.getProperty('SKIP_REMOVE_APP'), false)
-// configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.digest('MD5').take(6)
-// .decodeBase64() 
-// not used, currently:
-// configuration.uniqueBranchName      = configuration.branchNameNormalized.take(20) + '-' + org.apache.commons.lang.RandomStringUtils.random(6, true, true).toLowerCase()
-
-// configuration.branchNameNormalized  = env.BRANCH_NAME.toLowerCase().replaceAll('/','-').take(30) + '-' + env.BRANCH_NAME.decodeBase64().take(6)
 configuration.alwaysPerformTests    = configuration.alwaysPerformTests != null  ?    configuration.alwaysPerformTests   : (env.getProperty('ALWAYS_PERFORM_TESTS')  != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')  == "true"   ? true : false) : false)
-// debugPipeline
 configuration.debugPipeline         = configuration.debugPipeline != null       ?    configuration.debugPipeline        : (env.getProperty('DEBUG_PIPELINE')        != null ? (env.getProperty('DEBUG_PIPELINE')          == "true"   ? true : false) : false)
 configuration.sharedSelenium        = configuration.sharedSelenium != null      ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
-// configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
-// configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'                         : configuration.branchNameNormalized
+// configuration.seleniumRelease:     will be set further below
+// configuration.seleniumNamespace:   will be set further below
 configuration.skipRemoveApp         = configuration.skipRemoveApp != null       ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
 configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null  ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
 configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null    ?    configuration.showHelmTestLogs     : (env.getProperty('SHOW_HELM_TEST_LOGS')   != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')     == "true" ? true : false) : true)
@@ -38,7 +31,7 @@ configuration.debug                 = configuration.debug != null               
 configuration.debug.helmStatus      = configuration.debug.helmStatus != null    ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
 configuration.helmTestRetry         = configuration.helmTestRetry != null       ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
 
-// vars/configurationPrint.groovy
+// TODO: movwe to pipeline:vars/configurationPrint.groovy
 //String call(Map configuration){
 String configurationPrintString = "Configuration:\n"
   for (s in configuration) {
@@ -51,11 +44,8 @@ echo configurationPrintString
 // INIT
 def pipeline = new io.estrado.Pipeline()
 boolean alwaysPerformTests   = configuration.alwaysPerformTests
-// String  branchNameNormalized = configuration.branchNameNormalized
 boolean debugPipeline        = configuration.debugPipeline
 boolean sharedSelenium       = configuration.sharedSelenium
-// String  seleniumRelease      = configuration.seleniumRelease
-// String  seleniumNamespace    = configuration.seleniumNamespace
 boolean skipRemoveApp        = configuration.skipRemoveApp
 boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
 boolean showHelmTestLogs     = configuration.showHelmTestLogs
@@ -135,7 +125,9 @@ podTemplate(label: 'jenkins-pipeline',
 
       checkout scm
 
-      // unique branchNameNormalized also for branches with very long name:
+      // Create normalized branch name
+      // - replaces '/' by '-' 
+      // - shortens branch name, if needed. In that case, add a 6 Byte hash
       branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
       if (branchNameNormalized.length() > 30) {
         String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6 | tr -d '\\n' | tr -d '\\r'", returnStdout: true
@@ -147,8 +139,9 @@ podTemplate(label: 'jenkins-pipeline',
       echo "branchNameNormalized = ${branchNameNormalized}"
       configuration.branchNameNormalized = branchNameNormalized
 
-      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'                         : (configuration.branchNameNormalized + '-selenium')
-      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'                         : configuration.branchNameNormalized
+      // Set Selenium configuration
+      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (configuration.branchNameNormalized + '-selenium')
+      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : configuration.branchNameNormalized
       seleniumRelease   = configuration.seleniumRelease
       seleniumNamespace = configuration.seleniumNamespace
 
@@ -582,6 +575,9 @@ podTemplate(label: 'jenkins-pipeline',
               "imagePullSecrets.username": env.USERNAME,
               "imagePullSecrets.password": env.PASSWORD,
               "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+              "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
+              "test.ingressHostname": config.app.hostname,
+              // "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
             ]
           )
           
