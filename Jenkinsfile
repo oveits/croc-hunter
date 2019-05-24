@@ -247,7 +247,7 @@ podTemplate(label: 'jenkins-pipeline',
 
     }
 
-    if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop" || env.BRANCH_NAME ==~ /master/) {
+    if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop" || env.BRANCH_NAME ==~ /prod/) {
 
       stage('Deploy Selenium') {
         // Deploy using Helm chart
@@ -341,26 +341,51 @@ podTemplate(label: 'jenkins-pipeline',
                     // Create secret from Jenkins credentials manager
           withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-          pipeline.helmDeploy(
-            dry_run       : false,
-            name          : branchNameNormalized,
-            namespace     : branchNameNormalized,
-            chart_dir     : chart_dir,
-            set           : [
-              "imageTag": image_tags_list.get(0),
-              "replicas": config.app.replicas,
-              "cpu": config.app.cpu,
-              "memory": config.app.memory,
-              "ingress.hostname": config.app.hostname,
-              "imagePullSecrets.name": config.k8s_secret.name,
-              "imagePullSecrets.repository": config.container_repo.host,
-              "imagePullSecrets.username": env.USERNAME,
-              "imagePullSecrets.password": env.PASSWORD,
-              "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-              "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
-              "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
-            ]
-          )
+
+            if(env.BRANCH_NAME ==~ /prod/) {
+              pipeline.helmDeploy(
+                dry_run       : false,
+                name          : config.app.name,
+                namespace     : config.app.name,
+                chart_dir     : chart_dir,
+                set           : [
+                  "imageTag": image_tags_list.get(0),
+                  "replicas": config.app.replicas,
+                  "cpu": config.app.cpu,
+                  "memory": config.app.memory,
+                  "ingress.hostname": config.app.hostname,
+                  "imagePullSecrets.name": config.k8s_secret.name,
+                  "imagePullSecrets.repository": config.container_repo.host,
+                  "imagePullSecrets.username": env.USERNAME,
+                  "imagePullSecrets.password": env.PASSWORD,
+                  "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+                  "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
+                  "test.ingressHostname": config.app.hostname,
+                  // "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
+                ]
+              )
+            } else {
+              pipeline.helmDeploy(
+                dry_run       : false,
+                name          : branchNameNormalized,
+                namespace     : branchNameNormalized,
+                chart_dir     : chart_dir,
+                set           : [
+                  "imageTag": image_tags_list.get(0),
+                  "replicas": config.app.replicas,
+                  "cpu": config.app.cpu,
+                  "memory": config.app.memory,
+                  "ingress.enabled": false,
+                  "imagePullSecrets.name": config.k8s_secret.name,
+                  "imagePullSecrets.repository": config.container_repo.host,
+                  "imagePullSecrets.username": env.USERNAME,
+                  "imagePullSecrets.password": env.PASSWORD,
+                  "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+                  "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
+                  "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
+                ]
+              )
+            }
           }
         }
       }
@@ -541,45 +566,45 @@ podTemplate(label: 'jenkins-pipeline',
     }
 
    
-    // deploy only the master branch
-    if (env.BRANCH_NAME == 'prod') {
-      stage ('deploy to k8s PROD') {
-          // Deploy using Helm chart
-        container('helm') {
-                    // Create secret from Jenkins credentials manager
-          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
-                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-          pipeline.helmDeploy(
-            dry_run       : false,
-            name          : config.app.name,
-            namespace     : config.app.name,
-            chart_dir     : chart_dir,
-            set           : [
-              "imageTag": image_tags_list.get(0),
-              "replicas": config.app.replicas,
-              "cpu": config.app.cpu,
-              "memory": config.app.memory,
-              "ingress.hostname": config.app.hostname,
-              "imagePullSecrets.name": config.k8s_secret.name,
-              "imagePullSecrets.repository": config.container_repo.host,
-              "imagePullSecrets.username": env.USERNAME,
-              "imagePullSecrets.password": env.PASSWORD,
-              "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-              "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
-              "test.ingressHostname": config.app.hostname,
-              // "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
-            ]
-          )
+    // // deploy only the master branch
+    // if (env.BRANCH_NAME == 'prod') {
+    //   stage ('deploy to k8s PROD') {
+    //       // Deploy using Helm chart
+    //     container('helm') {
+    //                 // Create secret from Jenkins credentials manager
+    //       withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
+    //                     usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+    //       pipeline.helmDeploy(
+    //         dry_run       : false,
+    //         name          : config.app.name,
+    //         namespace     : config.app.name,
+    //         chart_dir     : chart_dir,
+    //         set           : [
+    //           "imageTag": image_tags_list.get(0),
+    //           "replicas": config.app.replicas,
+    //           "cpu": config.app.cpu,
+    //           "memory": config.app.memory,
+    //           "ingress.hostname": config.app.hostname,
+    //           "imagePullSecrets.name": config.k8s_secret.name,
+    //           "imagePullSecrets.repository": config.container_repo.host,
+    //           "imagePullSecrets.username": env.USERNAME,
+    //           "imagePullSecrets.password": env.PASSWORD,
+    //           "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+    //           "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
+    //           "test.ingressHostname": config.app.hostname,
+    //           // "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
+    //         ]
+    //       )
           
-            //  Run helm tests
-            if (config.app.test) {
-              pipeline.helmTest(
-                name          : config.app.name
-              )
-            }
-          }
-        }
-      }
-    }
+    //         //  Run helm tests
+    //         if (config.app.test) {
+    //           pipeline.helmTest(
+    //             name          : config.app.name
+    //           )
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
   }
 }
