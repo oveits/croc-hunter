@@ -9,5 +9,5 @@ spec:
     - name: {{ template "fullname" . }}-curl-test
       image: tutum/curl:trusty
       command: ["curl"]
-      args: ["-D", "-", "-s", "-v", "--retry 3", "--retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
+      args: ["-D", "-", "-s", "-v", "--retry", "3", "--retry-delay", "10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
   restartPolicy: Never
