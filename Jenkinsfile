@@ -190,6 +190,8 @@ podTemplate(label: 'jenkins-pipeline',
       // compile tag list
       image_tags_list = pipeline.getMapValues(image_tags_map)
 
+      echo "image_tags_list = ${image_tags_list}"
+
       // initialize helm container
       container('helm') {
           // init
