@@ -19,17 +19,17 @@ def configuration = [:]
 // ]
 
 // DEFAULTS
-configuration.alwaysPerformTests    = configuration.alwaysPerformTests != null  ?    configuration.alwaysPerformTests   : (env.getProperty('ALWAYS_PERFORM_TESTS')  != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')  == "true"   ? true : false) : false)
-configuration.debugPipeline         = configuration.debugPipeline != null       ?    configuration.debugPipeline        : (env.getProperty('DEBUG_PIPELINE')        != null ? (env.getProperty('DEBUG_PIPELINE')          == "true"   ? true : false) : false)
-configuration.sharedSelenium        = configuration.sharedSelenium != null      ?    configuration.sharedSelenium       : (env.getProperty('SHARED_SELENIUM')       != null ? (env.getProperty('SHARED_SELENIUM')         == "true" ? true : false) : false)
+configuration.alwaysPerformTests      = configuration.alwaysPerformTests != null     ?    configuration.alwaysPerformTests       : (env.getProperty('ALWAYS_PERFORM_TESTS')         != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')         == "true" ? true : false) : false)
+configuration.debugPipeline           = configuration.debugPipeline != null          ?    configuration.debugPipeline            : (env.getProperty('DEBUG_PIPELINE')               != null ? (env.getProperty('DEBUG_PIPELINE')               == "true" ? true : false) : false)
+configuration.sharedSelenium          = configuration.sharedSelenium != null         ?    configuration.sharedSelenium           : (env.getProperty('SHARED_SELENIUM')              != null ? (env.getProperty('SHARED_SELENIUM')              == "true" ? true : false) : false)
 // configuration.seleniumRelease:     will be set further below
 // configuration.seleniumNamespace:   will be set further below
-configuration.skipRemoveApp         = configuration.skipRemoveApp != null       ?    configuration.skipRemoveApp        : (env.getProperty('SKIP_REMOVE_APP')       != null ? (env.getProperty('SKIP_REMOVE_APP')         == "true" ? true : false) : false)
-configuration.skipRemoveTestPods    = configuration.skipRemoveTestPods != null  ?    configuration.skipRemoveTestPods   : (env.getProperty('SKIP_REMOVE_TEST_PODS') != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')   == "true" ? true : false) : false)
-configuration.showHelmTestLogs      = configuration.showHelmTestLogs != null    ?    configuration.showHelmTestLogs     : (env.getProperty('SHOW_HELM_TEST_LOGS')   != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')     == "true" ? true : false) : true)
-configuration.debug                 = configuration.debug != null               ?    configuration.debug                : [:]
-configuration.debug.helmStatus      = configuration.debug.helmStatus != null    ?    configuration.debug.helmStatus     : (env.getProperty('DEBUG_HELM_STATUS')     != null ? (env.getProperty('DEBUG_HELM_STATUS')       == "true" ? true : false) : false)
-configuration.helmTestRetry         = configuration.helmTestRetry != null       ?    configuration.helmTestRetry        : (env.getProperty('HELM_TEST_RETRY')       != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
+configuration.skipRemoveAppIfNotProd  = configuration.skipRemoveAppIfNotProd != null  ?    configuration.skipRemoveAppIfNotProd  : (env.getProperty('SKIP_REMOVE_APP_IF_NOT_PROD')  != null ? (env.getProperty('SKIP_REMOVE_APP_IF_NOT_PROD')  == "true" ? true : false) : false)
+configuration.skipRemoveTestPods      = configuration.skipRemoveTestPods != null      ?    configuration.skipRemoveTestPods      : (env.getProperty('SKIP_REMOVE_TEST_PODS')        != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')        == "true" ? true : false) : false)
+configuration.showHelmTestLogs        = configuration.showHelmTestLogs != null        ?    configuration.showHelmTestLogs        : (env.getProperty('SHOW_HELM_TEST_LOGS')          != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')          == "true" ? true : false) : true)
+configuration.debug                   = configuration.debug != null                   ?    configuration.debug                   : [:]
+configuration.debug.helmStatus        = configuration.debug.helmStatus != null        ?    configuration.debug.helmStatus        : (env.getProperty('DEBUG_HELM_STATUS')            != null ? (env.getProperty('DEBUG_HELM_STATUS')            == "true" ? true : false) : false)
+configuration.helmTestRetry           = configuration.helmTestRetry != null           ?    configuration.helmTestRetry           : (env.getProperty('HELM_TEST_RETRY')              != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
 
 // TODO: movwe to pipeline:vars/configurationPrint.groovy
 //String call(Map configuration){
@@ -46,7 +46,7 @@ def pipeline = new io.estrado.Pipeline()
 boolean alwaysPerformTests   = configuration.alwaysPerformTests
 boolean debugPipeline        = configuration.debugPipeline
 boolean sharedSelenium       = configuration.sharedSelenium
-// boolean skipRemoveApp        = configuration.skipRemoveApp
+// boolean skipRemoveApp        = configuration.skipRemoveAppIfNotProd
 boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
 boolean showHelmTestLogs     = configuration.showHelmTestLogs
 boolean debugHelmStatus      = configuration.debug.helmStatus
@@ -150,7 +150,7 @@ podTemplate(label: 'jenkins-pipeline',
       // set appRelease:
       appRelease    = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
       appNamespace  = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
-      skipRemoveApp = env.BRANCH_NAME == "prod" ? true            : configuration.skipRemoveApp
+      skipRemoveApp = env.BRANCH_NAME == "prod" ? true            : configuration.skipRemoveAppIfNotProd
 
       // Set Selenium configuration
       configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (appRelease + '-selenium')
