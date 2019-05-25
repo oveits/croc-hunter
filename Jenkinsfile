@@ -46,17 +46,20 @@ def pipeline = new io.estrado.Pipeline()
 boolean alwaysPerformTests   = configuration.alwaysPerformTests
 boolean debugPipeline        = configuration.debugPipeline
 boolean sharedSelenium       = configuration.sharedSelenium
-boolean skipRemoveApp        = configuration.skipRemoveApp
+// boolean skipRemoveApp        = configuration.skipRemoveApp
 boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
 boolean showHelmTestLogs     = configuration.showHelmTestLogs
 boolean debugHelmStatus      = configuration.debug.helmStatus
 Integer helmTestRetry        = configuration.helmTestRetry
 
+String  appRelease            = "to-be-changed"
+String  appNamespace          = "to-be-changed"
 def helmStatus
 String  testLog
 String  branchNameNormalized  = "to-be-changed"
 String  seleniumRelease       = "to-be-changed"
 String  seleniumNamespace     = "to-be-changed"
+boolean skipRemoveApp         = null
 
 
 podTemplate(label: 'jenkins-pipeline', 
@@ -139,16 +142,22 @@ podTemplate(label: 'jenkins-pipeline',
       echo "branchNameNormalized = ${branchNameNormalized}"
       configuration.branchNameNormalized = branchNameNormalized
 
-      // Set Selenium configuration
-      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (configuration.branchNameNormalized + '-selenium')
-      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : configuration.branchNameNormalized
-      seleniumRelease   = configuration.seleniumRelease
-      seleniumNamespace = configuration.seleniumNamespace
-
       // read in required jenkins workflow config values
       inputFile = readFile('Jenkinsfile.json')
       config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
       println "pipeline config ==> ${config}"
+
+      // set appRelease:
+      appRelease    = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
+      appNamespace  = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
+      skipRemoveApp = env.BRANCH_NAME == "prod" ? true            : configuration.skipRemoveApp
+
+      // Set Selenium configuration
+      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (appRelease + '-selenium')
+      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : appNamespace
+      seleniumRelease   = configuration.seleniumRelease
+      seleniumNamespace = configuration.seleniumNamespace
+
 
       // continue only if pipeline enabled
       if (!config.pipeline.enabled) {
@@ -292,11 +301,11 @@ podTemplate(label: 'jenkins-pipeline',
         stage('DEBUG: get helm status BEFORE Clean App'){
           container('helm') {
             helmStatus = pipeline.helmStatus(
-              name    : branchNameNormalized
+              name    : appRelease
             )
           }
           container('kubectl'){
-            sh "kubectl -n ${branchNameNormalized} get all || true"
+            sh "kubectl -n ${appNamespace} get all || true"
           }
         }
       }
@@ -305,11 +314,11 @@ podTemplate(label: 'jenkins-pipeline',
         // Deploy using Helm chart
         container('helm') {
 
-          // purge deleted versions of ${branchNameNormalized}, if present
+          // purge deleted versions of ${appRelease}, if present
           sh """
-            # purge deleted versions of ${branchNameNormalized}, if present
-            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}\$' \
-              && helm delete --purge ${branchNameNormalized} || true
+            # purge deleted versions of ${appRelease}, if present
+            helm list -a --output yaml | grep 'Name: ${appRelease}\$' \
+              && helm delete --purge ${appRelease} || true
           """
         }
       }
@@ -318,11 +327,11 @@ podTemplate(label: 'jenkins-pipeline',
         stage('DEBUG: get helm status AFTER Clean App'){
           container('helm') {
             helmStatus = pipeline.helmStatus(
-              name    : branchNameNormalized
+              name    : appRelease
             )
           }
           container('kubectl') {
-            sh "kubectl -n ${branchNameNormalized} get all || true"
+            sh "kubectl -n ${appNamespace} get all || true"
           }
         }
       }
@@ -331,11 +340,11 @@ podTemplate(label: 'jenkins-pipeline',
         // Deploy using Helm chart
         container('helm') {
 
-          // purge deleted versions of ${branchNameNormalized}, if present
+          // purge deleted versions of ${appRelease}, if present
           sh """
-            # purge deleted versions of ${branchNameNormalized}, if present
-            helm list -a --output yaml | grep 'Name: ${branchNameNormalized}\$' \
-              && helm delete --purge ${branchNameNormalized} || true
+            # purge deleted versions of ${appRelease}, if present
+            helm list -a --output yaml | grep 'Name: ${appRelease}\$' \
+              && helm delete --purge ${appRelease} || true
           """
 
                     // Create secret from Jenkins credentials manager
@@ -345,8 +354,8 @@ podTemplate(label: 'jenkins-pipeline',
             if(env.BRANCH_NAME ==~ /prod/) {
               pipeline.helmDeploy(
                 dry_run       : false,
-                name          : config.app.name,
-                namespace     : config.app.name,
+                name          : appRelease,
+                namespace     : appNamespace,
                 chart_dir     : chart_dir,
                 set           : [
                   "imageTag": image_tags_list.get(0),
@@ -361,14 +370,14 @@ podTemplate(label: 'jenkins-pipeline',
                   "imagePullSecrets.email": "ServicePrincipal@AzureRM",
                   "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
                   "test.ingressHostname": config.app.hostname,
-                  // "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
+                  // "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
                 ]
               )
             } else {
               pipeline.helmDeploy(
                 dry_run       : false,
-                name          : branchNameNormalized,
-                namespace     : branchNameNormalized,
+                name          : appRelease,
+                namespace     : appNamespace,
                 chart_dir     : chart_dir,
                 set           : [
                   "imageTag": image_tags_list.get(0),
@@ -382,7 +391,7 @@ podTemplate(label: 'jenkins-pipeline',
                   "imagePullSecrets.password": env.PASSWORD,
                   "imagePullSecrets.email": "ServicePrincipal@AzureRM",
                   "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
-                  "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
+                  "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
                 ]
               )
             }
@@ -394,11 +403,11 @@ podTemplate(label: 'jenkins-pipeline',
         stage('DEBUG: get helm status AFTER Deploy App'){
           container('helm') {
             helmStatus = pipeline.helmStatus(
-              name    : branchNameNormalized
+              name    : appRelease
             )
           }        
           container('kubectl'){
-            sh "kubectl -n ${branchNameNormalized} get all || true"
+            sh "kubectl -n ${appNamespace} get all || true"
           }
         }
       }
@@ -433,7 +442,7 @@ podTemplate(label: 'jenkins-pipeline',
       stage('PR: get helm status'){
         container('helm') {
           // get helm status
-          def helmStatusText = sh script: "helm status ${branchNameNormalized} -o json", returnStdout: true
+          def helmStatusText = sh script: "helm status ${appRelease} -o json", returnStdout: true
           echo helmStatusText
           helmStatus = readJSON text: helmStatusText
 
@@ -448,7 +457,7 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage('PR: delete completed PODs if present') {
         container('kubectl'){
-          sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
+          sh "kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${appNamespace} delete pod || true"
         }
       }
 
@@ -456,11 +465,11 @@ podTemplate(label: 'jenkins-pipeline',
         stage('DEBUG: get helm status AFTER delete old UI test containers (new way)') {
           container('helm') {
             helmStatus = pipeline.helmStatus(
-              name    : branchNameNormalized
+              name    : appRelease
             )
           }        
           container('kubectl'){
-            sh "kubectl -n ${branchNameNormalized} get all || true"
+            sh "kubectl -n ${appNamespace} get all || true"
           }
         }
       }
@@ -474,7 +483,7 @@ podTemplate(label: 'jenkins-pipeline',
 
           // run tests
           container('helm') {
-            testLog = sh script: "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'", returnStdout: true
+            testLog = sh script: "helm test ${appRelease} 2>&1 || echo 'SUCCESS=false'", returnStdout: true
           }
 
           echo ""
@@ -485,19 +494,19 @@ podTemplate(label: 'jenkins-pipeline',
 
             echo "cleaning:"
             container('kubectl'){
-              sh "kubectl -n ${branchNameNormalized} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${branchNameNormalized} delete pod || true"
+              sh "kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${appNamespace} delete pod || true"
             }
 
             echo "testing:"
             container('helm') {
-              testLog = sh script: "helm test ${branchNameNormalized} 2>&1 || echo 'SUCCESS=false'", returnStdout: true
+              testLog = sh script: "helm test ${appRelease} 2>&1 || echo 'SUCCESS=false'", returnStdout: true
             }
           }
 
           // read helm status
           container('helm') {
             helmStatus = pipeline.helmStatus(
-              name    : branchNameNormalized
+              name    : appRelease
             )
           }          
 
@@ -539,7 +548,7 @@ podTemplate(label: 'jenkins-pipeline',
           container('helm') {
             // delete test deployment
             pipeline.helmDelete(
-                name       : branchNameNormalized
+                name       : appRelease
             )
           }
         }
@@ -592,7 +601,7 @@ podTemplate(label: 'jenkins-pipeline',
     //           "imagePullSecrets.email": "ServicePrincipal@AzureRM",
     //           "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
     //           "test.ingressHostname": config.app.hostname,
-    //           // "test.ingressHostname": "${branchNameNormalized}-croc-hunter.${branchNameNormalized}.svc.cluster.local",
+    //           // "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
     //         ]
     //       )
           
