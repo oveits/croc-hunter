@@ -59,8 +59,8 @@ spec:
           env:
           - name: WORKFLOW_RELEASE
             value: {{.Release.Name | quote }}
-          - name: VCS_REF
-            value: {{.Value.commit.sha}}
+          # - name: VCS_REF
+          #   value: {{.Values.commit.sha}}
           livenessProbe:
             httpGet:
               path: /healthz
