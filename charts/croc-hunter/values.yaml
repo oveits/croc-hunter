@@ -32,7 +32,7 @@ pdb:
   minAvailable: 2
 ## Config Map
 commit:
-  #sha: "8c149d9"
+  sha: "8c149d9"
   branch: "master"
   repo : "oveits/crochunter"
 test:

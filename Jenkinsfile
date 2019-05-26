@@ -128,6 +128,8 @@ podTemplate(label: 'jenkins-pipeline',
 
       checkout scm
 
+      env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}"
+
       // Create normalized branch name
       // - replaces '/' by '-' 
       // - shortens branch name, if needed. In that case, add a 6 Byte hash
@@ -373,6 +375,8 @@ podTemplate(label: 'jenkins-pipeline',
                   "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
                   "test.ingressHostname": config.app.hostname,
                   "test.imageTag": image_tags_list.get(0),
+                  "test.releaseName": appRelease,
+                  "commit.sha": env.GIT_SHA,
                   // "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
                 ]
               )
@@ -396,6 +400,8 @@ podTemplate(label: 'jenkins-pipeline',
                   "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
                   "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
                   "test.imageTag": image_tags_list.get(0),
+                  "test.releaseName": appRelease,
+                  "commit.sha": env.GIT_SHA,
                 ]
               )
             }

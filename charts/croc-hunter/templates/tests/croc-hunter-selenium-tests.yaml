@@ -17,6 +17,10 @@ spec:
           #value: "crochunter.vocon-it.com"
           # value: "{{ template "fullname" . }}:{{.Values.servicePort}}" 
           #value: "{{.Values.ingress.hostname}}"
+        - name: RELEASE_NAME
+          value: "{{.Values.test.releaseName}}"
+        - name: CF_SHORT_REVISION
+          value: "{{.Values.commit.sha}}"
       #command: ["curl"]
       #args: ["retry 3", "retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
   restartPolicy: Never
