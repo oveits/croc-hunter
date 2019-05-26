@@ -372,6 +372,7 @@ podTemplate(label: 'jenkins-pipeline',
                   "imagePullSecrets.email": "ServicePrincipal@AzureRM",
                   "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
                   "test.ingressHostname": config.app.hostname,
+                  "test.imageTag": image_tags_list.get(0),
                   // "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
                 ]
               )
@@ -394,6 +395,7 @@ podTemplate(label: 'jenkins-pipeline',
                   "imagePullSecrets.email": "ServicePrincipal@AzureRM",
                   "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
                   "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
+                  "test.imageTag": image_tags_list.get(0),
                 ]
               )
             }

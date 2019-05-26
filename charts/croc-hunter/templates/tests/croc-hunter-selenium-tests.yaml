@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
     - name: {{ template "fullname" . }}-selenium-test
-      image: "oveits/crochunter-tests:latest"
+      image: "oveits/crochunter-tests:{{.Values.test.imageTag}}"
       env:
         # TODO: replace the next two values by dynamic content
         - name: SELENIUM_HUB_URL

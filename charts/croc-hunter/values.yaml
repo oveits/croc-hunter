@@ -38,3 +38,4 @@ commit:
 test:
   seleniumHubUrl: "http://selenium-hub-url:4444/wd/hub"
   ingressHostname: "{{.Values.ingress.hostname}}"
+  imageTag: latest
