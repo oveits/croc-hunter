@@ -31,7 +31,7 @@ configuration.debug                   = configuration.debug != null             
 configuration.debug.helmStatus        = configuration.debug.helmStatus != null        ?    configuration.debug.helmStatus        : (env.getProperty('DEBUG_HELM_STATUS')            != null ? (env.getProperty('DEBUG_HELM_STATUS')            == "true" ? true : false) : false)
 configuration.helmTestRetry           = configuration.helmTestRetry != null           ?    configuration.helmTestRetry           : (env.getProperty('HELM_TEST_RETRY')              != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
 
-// TODO: movwe to pipeline:vars/configurationPrint.groovy
+// TODO: move to pipeline:vars/configurationPrint.groovy
 //String call(Map configuration){
 String configurationPrintString = "Configuration:\n"
   for (s in configuration) {
@@ -123,12 +123,9 @@ podTemplate(label: 'jenkins-pipeline',
 
     stage('Prepare and SCM') {
 
-      // def pwd = pwd()
-      // def chart_dir = "${pwd}/charts/croc-hunter"
-
       checkout scm
 
-      env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}"
+      env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}", returnStdout: true
 
       // Create normalized branch name
       // - replaces '/' by '-' 
@@ -263,7 +260,13 @@ podTemplate(label: 'jenkins-pipeline',
     if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop" || env.BRANCH_NAME ==~ /prod/) {
 
       stage('Deploy Selenium') {
-        // Deploy using Helm chart
+        //
+        // Deploy Selenium using Helm chart
+        // will not wait for Seöenium to be up and running to save time (is done in a later stage)
+        //
+        // TODO: in the moment, only a single Chrome Selenium Node is started (hard-coded). Please make this dynamic
+        //       if so, this also needs to be changed in the stage "Selenium complete?"
+        //
         container('helm') {
           // delete and purge selenium, if present
           if ( !sharedSelenium ) {
@@ -284,23 +287,9 @@ podTemplate(label: 'jenkins-pipeline',
           """
         }
 
-        // will be done later in order to save time:
-        // // wait for Selenium deployments, if needed
-        // container('kubectl') {
-        //   sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
-        //   sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
-        // }
-
-        // // wait for the chrome node to be registered at the hub
-        // container('curl') {
-        //   sh "until curl -v -s -D - http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/grid/console | grep -m 1 'browserName=chrome'; do echo 'still waiting for a chrome node to register with the Selenium hub...' && sleep 5 ; done"
-        // }
-
       }
-
-      
-
-      // OV DEBUG
+   
+      // DEBUG
       if (debugHelmStatus) {
         stage('DEBUG: get helm status BEFORE Clean App'){
           container('helm') {
@@ -315,7 +304,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       stage('Clean App'){
-        // Deploy using Helm chart
+        // Clean App using Helm
         container('helm') {
 
           // purge deleted versions of ${appRelease}, if present
@@ -340,8 +329,11 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage ('PR: Deploy App') {
+      stage ('Deploy App') {
         // Deploy using Helm chart
+        //
+        // TODO: better use a single pipeline.helmDeploy. For that, change variables before running the command.
+        //       e.g. 
         container('helm') {
 
           // purge deleted versions of ${appRelease}, if present
@@ -354,34 +346,22 @@ podTemplate(label: 'jenkins-pipeline',
                     // Create secret from Jenkins credentials manager
           withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+            boolean ingressEnabled
+            String  ingressHostname
+            String  testIngressHostname
+            String  testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
 
             if(env.BRANCH_NAME ==~ /prod/) {
-              pipeline.helmDeploy(
-                dry_run       : false,
-                name          : appRelease,
-                namespace     : appNamespace,
-                chart_dir     : chart_dir,
-                set           : [
-                  "imageTag": image_tags_list.get(0),
-                  "replicas": config.app.replicas,
-                  "cpu": config.app.cpu,
-                  "memory": config.app.memory,
-                  "ingress.hostname": config.app.hostname,
-                  "imagePullSecrets.name": config.k8s_secret.name,
-                  "imagePullSecrets.repository": config.container_repo.host,
-                  "imagePullSecrets.username": env.USERNAME,
-                  "imagePullSecrets.password": env.PASSWORD,
-                  "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-                  "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
-                  "test.ingressHostname": config.app.hostname,
-                  "test.imageTag": image_tags_list.get(0),
-                  "test.releaseName": appRelease,
-                  "commit.sha": env.GIT_SHA,
-                  // "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
-                ]
-              )
+              ingressEnabled = true
+              ingressHostname = config.app.hostname
+              testIngressHostname = config.app.hostname
             } else {
-              pipeline.helmDeploy(
+              ingressEnabled = false
+              ingressHostname = ""
+              testIngressHostname = "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local"
+            }
+
+            pipeline.helmDeploy(
                 dry_run       : false,
                 name          : appRelease,
                 namespace     : appNamespace,
@@ -391,20 +371,20 @@ podTemplate(label: 'jenkins-pipeline',
                   "replicas": config.app.replicas,
                   "cpu": config.app.cpu,
                   "memory": config.app.memory,
-                  "ingress.enabled": false,
-                  "imagePullSecrets.name": config.k8s_secret.name,
+                  "ingress.enabled": ingressEnabled,
+                  "ingress.hostname": ingressHostname,
+                  // "imagePullSecrets.name": config.k8s_secret.name,
                   "imagePullSecrets.repository": config.container_repo.host,
-                  "imagePullSecrets.username": env.USERNAME,
-                  "imagePullSecrets.password": env.PASSWORD,
-                  "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-                  "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
-                  "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
+                  // "imagePullSecrets.username": env.USERNAME,
+                  // "imagePullSecrets.password": env.PASSWORD,
+                  // "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+                  "test.seleniumHubUrl": testSeleniumHubUrl,
+                  "test.ingressHostname": testIngressHostname,
                   "test.imageTag": image_tags_list.get(0),
                   "test.releaseName": appRelease,
                   "commit.sha": env.GIT_SHA,
                 ]
               )
-            }
           }
         }
       }
@@ -435,7 +415,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage ('PR: Create and Push Selenium Test Docker Image') {
+      stage ('Create and Push Selenium Test Docker Image') {
         container('docker') {
           pipeline.containerBuildPub(
               dockerfile: config.test_container_repo.dockerfile,
@@ -449,7 +429,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('PR: get helm status'){
+      stage('get helm status'){
         container('helm') {
           // get helm status
           def helmStatusText = sh script: "helm status ${appRelease} -o json", returnStdout: true
@@ -465,7 +445,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('PR: delete completed PODs if present') {
+      stage('delete completed PODs if present') {
         container('kubectl'){
           sh "kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${appNamespace} delete pod || true"
         }
@@ -484,7 +464,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
  
-      stage ('PR: UI Tests') {
+      stage ('UI Tests') {
         // depends on: stage('delete old UI test containers, if needed')
         
         //  Run helm tests
@@ -583,47 +563,5 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
     }
-
-   
-    // // deploy only the master branch
-    // if (env.BRANCH_NAME == 'prod') {
-    //   stage ('deploy to k8s PROD') {
-    //       // Deploy using Helm chart
-    //     container('helm') {
-    //                 // Create secret from Jenkins credentials manager
-    //       withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
-    //                     usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-    //       pipeline.helmDeploy(
-    //         dry_run       : false,
-    //         name          : config.app.name,
-    //         namespace     : config.app.name,
-    //         chart_dir     : chart_dir,
-    //         set           : [
-    //           "imageTag": image_tags_list.get(0),
-    //           "replicas": config.app.replicas,
-    //           "cpu": config.app.cpu,
-    //           "memory": config.app.memory,
-    //           "ingress.hostname": config.app.hostname,
-    //           "imagePullSecrets.name": config.k8s_secret.name,
-    //           "imagePullSecrets.repository": config.container_repo.host,
-    //           "imagePullSecrets.username": env.USERNAME,
-    //           "imagePullSecrets.password": env.PASSWORD,
-    //           "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-    //           "test.seleniumHubUrl": "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub",
-    //           "test.ingressHostname": config.app.hostname,
-    //           // "test.ingressHostname": "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local",
-    //         ]
-    //       )
-          
-    //         //  Run helm tests
-    //         if (config.app.test) {
-    //           pipeline.helmTest(
-    //             name          : config.app.name
-    //           )
-    //         }
-    //       }
-    //     }
-    //   }
-    // }
   }
 }

@@ -9,18 +9,12 @@ spec:
     - name: {{ template "fullname" . }}-selenium-test
       image: "oveits/crochunter-tests:{{.Values.test.imageTag}}"
       env:
-        # TODO: replace the next two values by dynamic content
         - name: SELENIUM_HUB_URL
           value: "{{.Values.test.seleniumHubUrl}}"
         - name: INGRESS_HOSTNAME
           value: "{{.Values.test.ingressHostname}}"
-          #value: "crochunter.vocon-it.com"
-          # value: "{{ template "fullname" . }}:{{.Values.servicePort}}" 
-          #value: "{{.Values.ingress.hostname}}"
         - name: RELEASE_NAME
           value: "{{.Values.test.releaseName}}"
         - name: CF_SHORT_REVISION
           value: "{{.Values.commit.sha}}"
-      #command: ["curl"]
-      #args: ["retry 3", "retry-delay 10", "{{ template "fullname" . }}:{{.Values.servicePort}}"]
   restartPolicy: Never
