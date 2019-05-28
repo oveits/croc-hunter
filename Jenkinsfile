@@ -110,6 +110,13 @@ podTemplate(label: 'jenkins-pipeline',
 ){
 
   node ('jenkins-pipeline') {
+    properties([
+      buildDiscarder(
+        logRotator(artifactDaysToKeepStr: '', 
+        artifactNumToKeepStr: '', 
+        daysToKeepStr: '', 
+        numToKeepStr: '30')), 
+      disableConcurrentBuilds()])
 
     def pwd = pwd()
     def chart_dir = "${pwd}/charts/croc-hunter"
