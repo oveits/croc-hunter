@@ -3,7 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@hotfix/helm-upgrade-install-fails-with-error-no-deployment')
+@Library('github.com/oveits/jenkins-pipeline@develop')
 
 def configuration = [:]
 
