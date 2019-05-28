@@ -46,7 +46,6 @@ def pipeline = new io.estrado.Pipeline()
 boolean alwaysPerformTests   = configuration.alwaysPerformTests
 boolean debugPipeline        = configuration.debugPipeline
 boolean sharedSelenium       = configuration.sharedSelenium
-// boolean skipRemoveApp        = configuration.skipRemoveAppIfNotProd
 boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
 boolean showHelmTestLogs     = configuration.showHelmTestLogs
 boolean debugHelmStatus      = configuration.debug.helmStatus
@@ -303,28 +302,37 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('Clean App'){
-        // Clean App using Helm
-        container('helm') {
-
-          // purge deleted versions of ${appRelease}, if present
-          sh """
-            # purge deleted versions of ${appRelease}, if present
-            helm list -a --output yaml | grep 'Name: ${appRelease}\$' \
-              && helm delete --purge ${appRelease} || true
-          """
-        }
-      }
-
-      if (debugHelmStatus) {
-        stage('DEBUG: get helm status AFTER Clean App'){
+      if (env.BRANCH_NAME != "prod") {
+        stage('Clean App'){
+          // Clean App using Helm
           container('helm') {
-            helmStatus = pipeline.helmStatus(
-              name    : appRelease
-            )
+
+            // purge old versions of ${appRelease}, if present (will find and purge deleted versions as well)
+            sh """
+              # purge deleted versions of ${appRelease}, if present
+              helm list -a --output yaml | grep 'Name: ${appRelease}\$' \
+                && helm delete --purge ${appRelease} || true
+            """
+            // TODO: purge only DELETED versions
+            // if jq is installed, we could use something like follows to find all FAILED or DELETED releases with Name "pr-15":
+            //    helm ls --output json | jq '.Releases | map( select( ((.Status=="FAILED") or (.Status=="DELETED")) and (.Name=="pr-15") ) )'
+            // or with regular expressions and a pipe in a next map(select(...)) instead of an "and" operator:
+            //    helm ls --output json | jq '.Releases | map( select(.Status|test("^FAILED$|^DELETED$") )) | map( select(.Name|test("^pr-15$") ))'
+            // another possibility is to define an object helmList
+            //    helmList = sh script: "helm list -a --output json"
           }
-          container('kubectl') {
-            sh "kubectl -n ${appNamespace} get all || true"
+        }
+
+        if (debugHelmStatus) {
+          stage('DEBUG: get helm status AFTER Clean App'){
+            container('helm') {
+              helmStatus = pipeline.helmStatus(
+                name    : appRelease
+              )
+            }
+            container('kubectl') {
+              sh "kubectl -n ${appNamespace} get all || true"
+            }
           }
         }
       }
@@ -332,18 +340,8 @@ podTemplate(label: 'jenkins-pipeline',
       stage ('Deploy App') {
         // Deploy using Helm chart
         //
-        // TODO: better use a single pipeline.helmDeploy. For that, change variables before running the command.
-        //       e.g. 
         container('helm') {
 
-          // purge deleted versions of ${appRelease}, if present
-          sh """
-            # purge deleted versions of ${appRelease}, if present
-            helm list -a --output yaml | grep 'Name: ${appRelease}\$' \
-              && helm delete --purge ${appRelease} || true
-          """
-
-                    // Create secret from Jenkins credentials manager
           withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
             boolean ingressEnabled
@@ -402,7 +400,7 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage ('PR: Selenium complete?') {
+      stage ('Selenium complete?') {
         // wait for Selenium deployments, if needed
         container('kubectl') {
           sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
@@ -429,24 +427,21 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('get helm status'){
-        container('helm') {
-          // get helm status
-          def helmStatusText = sh script: "helm status ${appRelease} -o json", returnStdout: true
-          echo helmStatusText
-          helmStatus = readJSON text: helmStatusText
-
-          // echo helmStatus
-        }
-
-        // print all resources in namespace:
-        container('kubectl'){
-          sh "kubectl -n ${helmStatus.namespace} get all"
+      if (debugHelmStatus) {
+        stage('DEBUG: get helm status BEFORE delete completed PODs if present') {
+          container('helm') {
+            helmStatus = pipeline.helmStatus(
+              name    : appRelease
+            )
+          }        
+          container('kubectl') {
+            sh "kubectl -n ${appNamespace} get all || true"
+          }
         }
       }
 
       stage('delete completed PODs if present') {
-        container('kubectl'){
+        container('kubectl') {
           sh "kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${appNamespace} delete pod || true"
         }
       }
@@ -458,14 +453,14 @@ podTemplate(label: 'jenkins-pipeline',
               name    : appRelease
             )
           }        
-          container('kubectl'){
+          container('kubectl') {
             sh "kubectl -n ${appNamespace} get all || true"
           }
         }
       }
  
       stage ('UI Tests') {
-        // depends on: stage('delete old UI test containers, if needed')
+        // depends on: stage('delete completed PODs if present')
         
         //  Run helm tests
 
@@ -491,21 +486,21 @@ podTemplate(label: 'jenkins-pipeline',
             container('helm') {
               testLog = sh script: "helm test ${appRelease} 2>&1 || echo 'SUCCESS=false'", returnStdout: true
             }
-          }
-
-          // read helm status
-          container('helm') {
-            helmStatus = pipeline.helmStatus(
-              name    : appRelease
-            )
-          }          
+          }      
 
           // show logs of test pods:
           if(showHelmTestLogs) {
-            container('kubectl') {
+            // read helm status
+            container('helm') {
+              helmStatus = pipeline.helmStatus(
+                name    : appRelease
+              )
+            } 
 
+            // show logs:
+            container('kubectl') {
               if(helmStatus.info.status.last_test_suite_run != null) {
-                  helmStatus.info.status.last_test_suite_run.results.each { result ->
+                helmStatus.info.status.last_test_suite_run.results.each { result ->
                   sh "kubectl -n ${helmStatus.namespace} logs ${result.name} || true"
                 }
               }
@@ -514,8 +509,15 @@ podTemplate(label: 'jenkins-pipeline',
 
           // delete test pods
           if(!skipRemoveTestPods) {
+            // read helm status
+            container('helm') {
+              helmStatus = pipeline.helmStatus(
+                name    : appRelease
+              )
+            } 
+
+            // delete test pods
             container('kubectl') {
-              
               if(helmStatus.info.status.last_test_suite_run != null) {
                   helmStatus.info.status.last_test_suite_run.results.each { result ->
                   sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
@@ -534,7 +536,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       if (skipRemoveApp == false) {
-        stage ('PR: Remove App') {
+        stage ('Remove App') {
           container('helm') {
             // delete test deployment
             pipeline.helmDelete(
