@@ -234,11 +234,16 @@ podTemplate(label: 'jenkins-pipeline',
 
     stage ('test deployment') {
 
+      def prodAppRelease = config.app.name
+
       // if PROD is deleted or pending, try to clean the issue (see issue #17)
       // 1. get helm status
       container('helm') {
         helmStatus = pipeline.helmStatus(
-          name    : appRelease
+          // TODO: revert this. The next line is only for debugging PROD deployment
+          name    : prodAppRelease
+          // name    : appRelease
+
         )
       }
 
@@ -255,7 +260,9 @@ podTemplate(label: 'jenkins-pipeline',
         // run dry-run helm chart installation
         pipeline.helmDeploy (
           dry_run       : true,
-          name          : appRelease,
+          // TODO: revert this. The next line is only for debugging PROD deployment
+          name    : prodAppRelease,
+          // name          : appRelease,
           namespace     : appNamespace,
           chart_dir     : chart_dir,
           set           : [
