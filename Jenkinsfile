@@ -234,6 +234,7 @@ podTemplate(label: 'jenkins-pipeline',
 
     stage ('test deployment') {
 
+      // TODO: remove this
       def prodAppRelease = config.app.name
 
       // if PROD is deleted or pending, try to clean the issue (see issue #17)
@@ -261,9 +262,10 @@ podTemplate(label: 'jenkins-pipeline',
         pipeline.helmDeploy (
           dry_run       : true,
           // TODO: revert this. The next line is only for debugging PROD deployment
-          name    : prodAppRelease,
+          name      : prodAppRelease,
           // name          : appRelease,
-          namespace     : appNamespace,
+          // namespace     : appNamespace,
+          namespace : prodAppRelease
           chart_dir     : chart_dir,
           set           : [
             "imageTag": image_tags_list.get(0),
