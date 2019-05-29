@@ -251,7 +251,9 @@ podTemplate(label: 'jenkins-pipeline',
       echo "helmStatus = ${helmStatus}" 
       
       // 2. find PROD deployment
-      // if( helmStatus.info
+      if( helmStatus.info.status.code == 4 ) {
+        echo "Status is FAILED"
+      }
 
       container('helm') {
 
