@@ -268,7 +268,7 @@ podTemplate(label: 'jenkins-pipeline',
           name      : prodAppRelease,
           // name          : appRelease,
           // namespace     : appNamespace,
-          namespace : prodAppRelease
+          namespace : prodAppRelease,
           chart_dir     : chart_dir,
           set           : [
             "imageTag": image_tags_list.get(0),
