@@ -252,7 +252,8 @@ podTemplate(label: 'jenkins-pipeline',
       
       // 2. find PROD deployment
       if( helmStatus.info.status.code == 4 ) {
-        echo "Status is FAILED"
+        echo "helm Status is FAILED"
+        // TODO: try to rollback
       }
 
       container('helm') {
