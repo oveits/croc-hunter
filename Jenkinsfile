@@ -245,7 +245,7 @@ podTemplate(label: 'jenkins-pipeline',
       echo "helmStatus = ${helmStatus}" 
       
       // 2. find PROD deployment
-      if( helmStatus.info
+      // if( helmStatus.info
 
       container('helm') {
 
