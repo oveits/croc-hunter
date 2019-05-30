@@ -127,6 +127,12 @@ podTemplate(label: 'jenkins-pipeline',
     def image_tags_map
     def image_tags_list
 
+    // deployment variables:
+    boolean ingressEnabled
+    String  ingressHostname
+    String  testIngressHostname
+    String  testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
+
     stage('Prepare and SCM') {
 
       checkout scm
@@ -205,6 +211,17 @@ podTemplate(label: 'jenkins-pipeline',
           println "checking client/server version"
           sh "helm version"
       }
+
+      // prepare deployment variables
+      if(env.BRANCH_NAME ==~ /prod/) {
+        ingressEnabled = true
+        ingressHostname = config.app.hostname
+        testIngressHostname = config.app.hostname
+      } else {
+        ingressEnabled = false
+        ingressHostname = ""
+        testIngressHostname = "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local"
+      }
     }
 
     stage ('compile and test') {
@@ -212,6 +229,21 @@ podTemplate(label: 'jenkins-pipeline',
       container('golang') {
         sh "go test -v -race ./..."
         sh "make bootstrap build"
+      }
+    }
+
+    stage('clean old versions, if not DEPLOYED') {
+      container('helm') {
+        helmStatus = pipeline.helmStatus(
+          // DONE: revert this. The next line is only for debugging PROD deployment
+          // name    : prodAppRelease
+          name    : appRelease
+        )
+        if(helmStatus.info.status.code != 1) {
+          sh """
+            helm delete --purge ${appRelease}
+          """
+        }
       }
     }
 
@@ -223,25 +255,32 @@ podTemplate(label: 'jenkins-pipeline',
         pipeline.helmLint(chart_dir)
 
         // run dry-run helm chart installation
-        pipeline.helmDeploy(
-          dry_run       : false,
-          name          : config.app.name,
-          namespace     : config.app.name,
+
+        pipeline.helmDeploy (
+          dry_run       : true,
+          name          : appRelease,
+          namespace     : appNamespace,
+          // namespace : prodAppRelease,
           chart_dir     : chart_dir,
           set           : [
             "imageTag": image_tags_list.get(0),
             "replicas": config.app.replicas,
             "cpu": config.app.cpu,
             "memory": config.app.memory,
-            "ingress.hostname": config.app.hostname,
+            "ingress.enabled": ingressEnabled,
+            "ingress.hostname": ingressHostname,
             "imagePullSecrets.name": config.k8s_secret.name,
             "imagePullSecrets.repository": config.container_repo.host,
             "imagePullSecrets.username": env.USERNAME,
             "imagePullSecrets.password": env.PASSWORD,
-            "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+            // "imagePullSecrets.email": "ServicePrincipal@AzureRM",
+            "test.seleniumHubUrl": testSeleniumHubUrl,
+            "test.ingressHostname": testIngressHostname,
+            "test.imageTag": image_tags_list.get(0),
+            "test.releaseName": appRelease,
+            "commit.sha": env.GIT_SHA,
           ]
         )
-
       }
     }
 
@@ -351,20 +390,6 @@ podTemplate(label: 'jenkins-pipeline',
 
           withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-            boolean ingressEnabled
-            String  ingressHostname
-            String  testIngressHostname
-            String  testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
-
-            if(env.BRANCH_NAME ==~ /prod/) {
-              ingressEnabled = true
-              ingressHostname = config.app.hostname
-              testIngressHostname = config.app.hostname
-            } else {
-              ingressEnabled = false
-              ingressHostname = ""
-              testIngressHostname = "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local"
-            }
 
             pipeline.helmDeploy(
                 dry_run       : false,
