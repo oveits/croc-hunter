@@ -235,11 +235,9 @@ podTemplate(label: 'jenkins-pipeline',
     stage('clean old versions, if not DEPLOYED') {
       container('helm') {
         helmStatus = pipeline.helmStatus(
-          // DONE: revert this. The next line is only for debugging PROD deployment
-          // name    : prodAppRelease
           name    : appRelease
         )
-        if(helmStatus.info.status.code != 1) {
+        if(helmStatus && helmStatus.info && helmStatus.info.status && helmStatus.info.status.code != 1) {
           sh """
             helm delete --purge ${appRelease}
           """
@@ -259,7 +257,6 @@ podTemplate(label: 'jenkins-pipeline',
           dry_run       : true,
           name          : appRelease,
           namespace     : appNamespace,
-          // namespace : prodAppRelease,
           chart_dir     : chart_dir,
           set           : [
             "imageTag": image_tags_list.get(0),
