@@ -232,36 +232,22 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
-    stage ('test deployment') {
-
-      // TODO: remove this
-      def prodAppRelease = config.app.name
-
-      // if PROD is deleted or pending, try to clean the issue (see issue #17)
-      // 1. get helm status
+    stage('clean old versions, if not DEPLOYED') {
       container('helm') {
         helmStatus = pipeline.helmStatus(
-          // TODO: revert this. The next line is only for debugging PROD deployment
-          name    : prodAppRelease
-          // name    : appRelease
-
+          // DONE: revert this. The next line is only for debugging PROD deployment
+          // name    : prodAppRelease
+          name    : appRelease
         )
-      }
-
-      echo "helmStatus = ${helmStatus}" 
-      
-      // 2. find PROD deployment
-      if(helmStatus.info.status.code != 1) {
-        // status code == 1 is "DEPLOYED"
-        echo "helm release ${prodAppRelease} is not DEPLOYED"
-        // purge old versions of ${appRelease}, if it is not DEPLOYED yet (will find and purge deleted versions as well)
-        container('helm') {
-          // here, I hafe removed the trailing || true, sice I know already from the if clause that the release exists
+        if(helmStatus.info.status.code != 1) {
           sh """
-            helm delete --purge ${prodAppRelease}
+            helm delete --purge ${appRelease}
           """
         }
       }
+    }
+
+    stage ('test deployment') {
 
       container('helm') {
 
@@ -271,11 +257,9 @@ podTemplate(label: 'jenkins-pipeline',
         // run dry-run helm chart installation
         pipeline.helmDeploy (
           dry_run       : true,
-          // TODO: revert this. The next line is only for debugging PROD deployment
-          name      : prodAppRelease,
-          // name          : appRelease,
-          // namespace     : appNamespace,
-          namespace : prodAppRelease,
+          name          : appRelease,
+          namespace     : appNamespace,
+          // namespace : prodAppRelease,
           chart_dir     : chart_dir,
           set           : [
             "imageTag": image_tags_list.get(0),
@@ -296,25 +280,6 @@ podTemplate(label: 'jenkins-pipeline',
             "commit.sha": env.GIT_SHA,
           ]
         )
-        // pipeline.helmDeploy(
-        //   dry_run       : true,
-        //   name          : config.app.name,
-        //   namespace     : config.app.name,
-        //   chart_dir     : chart_dir,
-        //   set           : [
-        //     "imageTag": image_tags_list.get(0),
-        //     "replicas": config.app.replicas,
-        //     "cpu": config.app.cpu,
-        //     "memory": config.app.memory,
-        //     "ingress.hostname": config.app.hostname,
-        //     "imagePullSecrets.name": config.k8s_secret.name,
-        //     "imagePullSecrets.repository": config.container_repo.host,
-        //     "imagePullSecrets.username": env.USERNAME,
-        //     "imagePullSecrets.password": env.PASSWORD,
-        //     "imagePullSecrets.email": "ServicePrincipal@AzureRM",
-        //   ]
-        // )
-
       }
     }
 
