@@ -251,9 +251,16 @@ podTemplate(label: 'jenkins-pipeline',
       echo "helmStatus = ${helmStatus}" 
       
       // 2. find PROD deployment
-      if( helmStatus.info.status.code == 4 ) {
-        echo "helm Status is FAILED"
-        // TODO: try to rollback
+      if(helmStatus.info.status.code != 1) {
+        // status code == 1 is "DEPLOYED"
+        echo "helm release ${prodAppRelease} is not DEPLOYED"
+        // purge old versions of ${appRelease}, if it is not DEPLOYED yet (will find and purge deleted versions as well)
+        container('helm') {
+          // here, I hafe removed the trailing || true, sice I know already from the if clause that the release exists
+          sh """
+            helm delete --purge ${prodAppRelease}
+          """
+        }
       }
 
       container('helm') {
