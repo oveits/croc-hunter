@@ -156,6 +156,9 @@ podTemplate(label: 'jenkins-pipeline',
 
       // define GIT_SHA
       env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}", returnStdout: true
+      String debugRevParseHead = sh script: 'git rev-parse HEAD', returnStdout: true
+
+      echo "debugRevParseHead = ${debugRevParseHead}"
 
       echo "env.GIT_SHA = ${env.GIT_SHA} (after sh script)"
       echo "env.GIT_REVISION = ${env.GIT_REVISION}"
