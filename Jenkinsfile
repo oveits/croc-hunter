@@ -155,10 +155,15 @@ podTemplate(label: 'jenkins-pipeline',
     stage ('enrich configuration') {
 
       // define GIT_SHA
-      // env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}", returnStdout: true
+      env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}", returnStdout: true
+
+      echo "env.GIT_SHA = ${env.GIT_SHA} (after sh script)"
+      echo "env.GIT_REVISION = ${env.GIT_REVISION}"
+      sh "exit 1"
       // test without sh script:
       commitTag = env.GIT_REVISION.substring(0, 7).trim()
       // env.GIT_SHA = commitTag
+      
 
       // set branchNameNormalized:
       // - replaces '/' by '-' 
