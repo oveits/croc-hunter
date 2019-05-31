@@ -59,6 +59,7 @@ String  branchNameNormalized  = "to-be-changed"
 String  seleniumRelease       = "to-be-changed"
 String  seleniumNamespace     = "to-be-changed"
 boolean skipRemoveApp         = null
+String  commitTag             = "to-be-changed"
 
 
 podTemplate(label: 'jenkins-pipeline', 
@@ -134,13 +135,32 @@ podTemplate(label: 'jenkins-pipeline',
     String  testIngressHostname = "to-be-changed"
     String  testSeleniumHubUrl = "to-be-changed"
 
-    stage('Prepare and SCM') {
+    stage('Check out from SCM') {
 
       checkout scm
 
-      env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}", returnStdout: true
+      // read in required jenkins workflow config values
+      inputFile = readFile('Jenkinsfile.json')
+      config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+      println "pipeline config ==> ${config}"
 
-      // Create normalized branch name
+
+      // continue only if pipeline enabled
+      if (!config.pipeline.enabled) {
+          println "pipeline disabled"
+          return
+      }
+    }
+
+    stage ('enrich configuration') {
+
+      // define GIT_SHA
+      // env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}", returnStdout: true
+      // test without sh script:
+      commitTag = env.GIT_REVISION.substring(0, 7).trim()
+      // env.GIT_SHA = commitTag
+
+      // set branchNameNormalized:
       // - replaces '/' by '-' 
       // - shortens branch name, if needed. In that case, add a 6 Byte hash
       branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
@@ -153,32 +173,6 @@ podTemplate(label: 'jenkins-pipeline',
       }
       echo "branchNameNormalized = ${branchNameNormalized}"
       configuration.branchNameNormalized = branchNameNormalized
-
-      // read in required jenkins workflow config values
-      inputFile = readFile('Jenkinsfile.json')
-      config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
-      println "pipeline config ==> ${config}"
-
-      // set appRelease:
-      appRelease    = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
-      appNamespace  = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
-      skipRemoveApp = env.BRANCH_NAME == "prod" ? true            : configuration.skipRemoveAppIfNotProd
-
-      // Set Selenium configuration
-      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (appRelease + '-selenium')
-      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : appNamespace
-      seleniumRelease   = configuration.seleniumRelease
-      seleniumNamespace = configuration.seleniumNamespace
-
-
-      // continue only if pipeline enabled
-      if (!config.pipeline.enabled) {
-          println "pipeline disabled"
-          return
-      }
-    }
-
-    stage ('enrich configuration') {
 
       // set appRelease:
       appRelease    = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
@@ -292,7 +286,7 @@ podTemplate(label: 'jenkins-pipeline',
             "test.ingressHostname": testIngressHostname,
             "test.imageTag": image_tags_list.get(0),
             "test.releaseName": appRelease,
-            "commit.sha": env.GIT_SHA,
+            "commit.sha": commitTag,
           ]
         )
       }
@@ -426,7 +420,7 @@ podTemplate(label: 'jenkins-pipeline',
                   "test.ingressHostname": testIngressHostname,
                   "test.imageTag": image_tags_list.get(0),
                   "test.releaseName": appRelease,
-                  "commit.sha": env.GIT_SHA,
+                  "commit.sha": commitTag,
                 ]
               )
           }
