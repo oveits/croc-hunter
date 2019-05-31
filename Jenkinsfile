@@ -128,10 +128,11 @@ podTemplate(label: 'jenkins-pipeline',
     def image_tags_list
 
     // deployment variables:
-    boolean ingressEnabled
-    String  ingressHostname
-    String  testIngressHostname
-    String  testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
+    // will be set in stage('Prepare and SCM')
+    boolean ingressEnabled = null
+    String  ingressHostname = "to-be-changed"
+    String  testIngressHostname = "to-be-changed"
+    String  testSeleniumHubUrl = "to-be-changed"
 
     stage('Prepare and SCM') {
 
@@ -213,6 +214,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       // prepare deployment variables
+      testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
       if(env.BRANCH_NAME ==~ /prod/) {
         ingressEnabled = true
         ingressHostname = config.app.hostname
