@@ -1,6 +1,6 @@
 FROM golang:1.8-alpine3.6
 
-LABEL maintainer="jessde@microsoft.com"
+LABEL maintainer="oliver.veits@vocon-it.com"
 
 ARG VCS_REF
 ARG BUILD_DATE
