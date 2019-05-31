@@ -154,21 +154,10 @@ podTemplate(label: 'jenkins-pipeline',
 
     stage ('enrich configuration') {
 
-      // define GIT_SHA
-      // env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}", returnStdout: true
+      // set commitTag
       String gitRevParseHead = sh script: 'git rev-parse HEAD', returnStdout: true
       commitTag = gitRevParseHead.substring(0, 7).trim()
-      echo "debugRevParseHead = __${debugRevParseHead}__"
-      echo "_commitTag_ = _${commitTag}_"
-      
-
-      // echo "env.GIT_SHA = ${env.GIT_SHA} (after sh script)"
-      // echo "env.GIT_REVISION = ${env.GIT_REVISION}"
-      sh "exit 1"
-      // test without sh script:
-
-      // env.GIT_SHA = commitTag
-      
+      echo "commitTag = ${commitTag}"      
 
       // set branchNameNormalized:
       // - replaces '/' by '-' 
