@@ -15,9 +15,6 @@ release_name = os.getenv('RELEASE_NAME')
 commit_sha = os.getenv('CF_SHORT_REVISION')
 selenium_hub_url = os.getenv('SELENIUM_HUB_URL')
 
-# Give Selenium Hub time to start
-time.sleep(15)  # TODO: figure how to do this better
-
 @pytest.fixture(scope='module')
 def browser():
     browser_name = ip = os.getenv('BROWSER')
@@ -58,7 +55,6 @@ def test_confirm_canvas_hud(browser):
     assert element.get_attribute('id') == 'canvasHud'
 
 
-# TODO: uncomment:
 def test_confirm_release_name(browser):
     browser.get("http://{}".format(hostname))
     element = browser.find_element(By.XPATH, '//div[@class="details"]')
