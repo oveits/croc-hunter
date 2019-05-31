@@ -62,7 +62,9 @@ boolean showHelmTestLogs     = configuration.showHelmTestLogs
 boolean debugHelmStatus      = configuration.debug.helmStatus
 Integer helmTestRetry        = configuration.helmTestRetry
 
-def helmStatus
+String  appRelease            = "to-be-changed"
+String  appNamespace          = "to-be-changed"
+def     helmStatus
 String  testLog
 String  branchNameNormalized  = "to-be-changed"
 String  seleniumRelease       = "to-be-changed"
@@ -132,7 +134,7 @@ podTemplate(label: 'jenkins-pipeline',
     def inputFile
     def config
     def acct
-    def image_tags_map
+    // def image_tags_map
     def image_tags_list
 
     stage('Prepare and SCM') {
@@ -169,6 +171,20 @@ podTemplate(label: 'jenkins-pipeline',
           println "pipeline disabled"
           return
       }
+    }
+
+    stage ('enrich configuration') {
+
+      // set appRelease:
+      appRelease    = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
+      appNamespace  = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
+      skipRemoveApp = env.BRANCH_NAME == "prod" ? true            : configuration.skipRemoveAppIfNotProd
+
+      // Set Selenium configuration
+      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (appRelease + '-selenium')
+      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : appNamespace
+      seleniumRelease   = configuration.seleniumRelease
+      seleniumNamespace = configuration.seleniumNamespace
 
       // set additional git envvars for image tagging
       pipeline.gitEnvVars()
@@ -189,12 +205,28 @@ podTemplate(label: 'jenkins-pipeline',
 
       acct = pipeline.getContainerRepoAcct(config)
 
-      // tag image with version, and branch-commit_id
-      image_tags_map = pipeline.getContainerTags(config)
+      // // tag image with version, and branch-commit_id
+      // image_tags_map = pipeline.getContainerTags(config)
 
       // compile tag list
-      image_tags_list = pipeline.getMapValues(image_tags_map)
+      image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(config))
 
+      echo "image_tags_list = ${image_tags_list}"
+
+      // prepare deployment variables
+      testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
+      if(env.BRANCH_NAME ==~ /prod/) {
+        ingressEnabled = true
+        ingressHostname = config.app.hostname
+        testIngressHostname = config.app.hostname
+      } else {
+        ingressEnabled = false
+        ingressHostname = ""
+        testIngressHostname = "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local"
+      }
+    }
+
+    stage ('initialize helm') {
       // initialize helm container
       container('helm') {
           // init
