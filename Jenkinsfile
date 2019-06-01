@@ -7,6 +7,11 @@
 
 def configuration = [:]
 
+configuration = [
+  app:[
+    name:"croc-hunter"
+  ]
+]
 // Example:
 // configuration = [
 //   sharedSelenium:true,
@@ -29,6 +34,7 @@ configuration.skipRemoveTestPods      = configuration.skipRemoveTestPods != null
 configuration.showHelmTestLogs        = configuration.showHelmTestLogs != null        ?    configuration.showHelmTestLogs        : (env.getProperty('SHOW_HELM_TEST_LOGS')          != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')          == "true" ? true : false) : true)
 configuration.debug                   = configuration.debug != null                   ?    configuration.debug                   : [:]
 configuration.debug.helmStatus        = configuration.debug.helmStatus != null        ?    configuration.debug.helmStatus        : (env.getProperty('DEBUG_HELM_STATUS')            != null ? (env.getProperty('DEBUG_HELM_STATUS')            == "true" ? true : false) : false)
+configuration.debug.envVars           = configuration.debug.envVars != null           ?    configuration.debug.envVars           : (env.getProperty('DEBUG_ENV_VARS')               != null ? (env.getProperty('DEBUG_ENV_VARS')            == "true" ? true : false) : false)
 configuration.helmTestRetry           = configuration.helmTestRetry != null           ?    configuration.helmTestRetry           : (env.getProperty('HELM_TEST_RETRY')              != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
 
 // TODO: move to pipeline:vars/configurationPrint.groovy
@@ -145,11 +151,11 @@ podTemplate(label: 'jenkins-pipeline',
       println "pipeline config ==> ${config}"
 
 
-      // continue only if pipeline enabled
-      if (!config.pipeline.enabled) {
-          println "pipeline disabled"
-          return
-      }
+      // // continue only if pipeline enabled
+      // if (!config.pipeline.enabled) {
+      //     println "pipeline disabled"
+      //     return
+      // }
     }
 
     stage ('enrich configuration') {
@@ -174,9 +180,9 @@ podTemplate(label: 'jenkins-pipeline',
       configuration.branchNameNormalized = branchNameNormalized
 
       // set appRelease:
-      appRelease    = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
-      appNamespace  = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
-      skipRemoveApp = env.BRANCH_NAME == "prod" ? true            : configuration.skipRemoveAppIfNotProd
+      appRelease    = env.BRANCH_NAME == "prod" ? configuration.app.name : branchNameNormalized
+      appNamespace  = env.BRANCH_NAME == "prod" ? configuration.app.name : branchNameNormalized
+      skipRemoveApp = env.BRANCH_NAME == "prod" ? true                   : configuration.skipRemoveAppIfNotProd
 
       // Set Selenium configuration
       configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (appRelease + '-selenium')
@@ -188,8 +194,8 @@ podTemplate(label: 'jenkins-pipeline',
       pipeline.gitEnvVars()
 
       // If pipeline debugging enabled
-      if (config.pipeline.debug) {
-        println "DEBUG ENABLED"
+      if (configuration.debug.envVars) {
+        println "DEBUGGING of ENV VARS ENABLED"
         sh "env | sort"
 
         println "Runing kubectl/helm tests"
