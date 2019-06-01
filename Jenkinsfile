@@ -207,7 +207,7 @@ podTemplate(label: 'jenkins-pipeline',
       echo "configuration.image_tags_list = ${configuration.image_tags_list}"
 
       // prepare deployment variables
-      configuration.testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
+      configuration.testSeleniumHubUrl = "http://${configuration.seleniumRelease}-selenium-hub.${configuration.seleniumNamespace}.svc.cluster.local:4444/wd/hub"
       if(env.BRANCH_NAME ==~ /prod/) {
         configuration.ingressEnabled = true
         configuration.ingressHostname = configuration.app.hostname
@@ -215,7 +215,7 @@ podTemplate(label: 'jenkins-pipeline',
       } else {
         configuration.ingressEnabled = false
         configuration.ingressHostname = ""
-        configuration.testIngressHostname = "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local"
+        configuration.testIngressHostname = "${configuration.appRelease}-croc-hunter.${configuration.appNamespace}.svc.cluster.local"
       }
     }
 
