@@ -170,13 +170,13 @@ podTemplate(label: 'jenkins-pipeline',
       // configuration.branchNameNormalized = branchNameNormalized
 
       // set appRelease:
-      configuration.appRelease    = env.BRANCH_NAME == "prod" ? configuration.app.name : branchNameNormalized
-      configuration.appNamespace  = env.BRANCH_NAME == "prod" ? configuration.app.name : branchNameNormalized
+      configuration.appRelease    = env.BRANCH_NAME == "prod" ? configuration.app.name : configuration.branchNameNormalized
+      configuration.appNamespace  = env.BRANCH_NAME == "prod" ? configuration.app.name : configuration.branchNameNormalized
       configuration.skipRemoveApp = env.BRANCH_NAME == "prod" ? true                   : configuration.skipRemoveAppIfNotProd
 
       // Set Selenium configuration
-      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (appRelease + '-selenium')
-      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : appNamespace
+      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (configuration.appRelease + '-selenium')
+      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : configuration.appNamespace
 
       // set additional git envvars for image tagging
       pipeline.gitEnvVars()
@@ -201,7 +201,8 @@ podTemplate(label: 'jenkins-pipeline',
       // image_tags_map = pipeline.getContainerTags(config)
 
       // compile tag list
-      configuration.image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(config))
+      // configuration.image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(config))
+      configuration.image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(configuration))
 
       echo "configuration.image_tags_list = ${configuration.image_tags_list}"
 
