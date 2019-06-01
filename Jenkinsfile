@@ -195,8 +195,8 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      configuration.acct = pipeline.getContainerRepoAcct(config)
-
+      // configuration.acct = pipeline.getContainerRepoAcct(config)
+      configuration.acct = pipeline.getContainerRepoAcct(configuration
       // // tag image with version, and branch-commit_id
       // image_tags_map = pipeline.getContainerTags(config)
 
