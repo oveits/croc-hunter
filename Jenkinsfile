@@ -9,7 +9,42 @@ def configuration = [:]
 
 configuration = [
   app:[
-    name:"croc-hunter"
+    name:"croc-hunter",
+    replicas:3,
+    cpu:"10m",
+    memory:"128Mi",
+    test: true,
+    hostname:"crochunter.vocon-it.com"
+  ],
+  k8s_secret:[
+    name:"croc-hunter-secrets"
+  ],
+  container_repo:[
+    host:"docker.io",
+    master_acct:"oveits",
+    alt_acct:"oveits",
+    jenkins_creds_id:"oveits_docker_hub",
+    repo:"crochunter",
+    dockeremail:".",
+    dockerfile:"./",
+    image_scanning:false
+  ],
+  test_container_repo:[
+    host:"docker.io",
+    master_acct:"oveits",
+    alt_acct:"oveits",
+    jenkins_creds_id:"oveits_docker_hub",
+    repo:"crochunter-tests",
+    dockeremail:".",
+    dockerfile:"./tests/",
+    image_scanning:false
+  ],
+  pipeline:[
+      enabled:true,
+      debug:true,
+      library:[
+        branch:"dev"
+      ]
   ]
 ]
 // Example:
@@ -152,7 +187,7 @@ podTemplate(label: 'jenkins-pipeline',
 
 
       // // continue only if pipeline enabled
-      // if (!config.pipeline.enabled) {
+      // if (!configuration.pipeline.enabled) {
       //     println "pipeline disabled"
       //     return
       // }
@@ -221,8 +256,8 @@ podTemplate(label: 'jenkins-pipeline',
       testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
       if(env.BRANCH_NAME ==~ /prod/) {
         ingressEnabled = true
-        ingressHostname = config.app.hostname
-        testIngressHostname = config.app.hostname
+        ingressHostname = configuration.app.hostname
+        testIngressHostname = configuration.app.hostname
       } else {
         ingressEnabled = false
         ingressHostname = ""
@@ -277,13 +312,13 @@ podTemplate(label: 'jenkins-pipeline',
           chart_dir     : chart_dir,
           set           : [
             "imageTag": image_tags_list.get(0),
-            "replicas": config.app.replicas,
-            "cpu": config.app.cpu,
-            "memory": config.app.memory,
+            "replicas": configuration.app.replicas,
+            "cpu": configuration.app.cpu,
+            "memory": configuration.app.memory,
             "ingress.enabled": ingressEnabled,
             "ingress.hostname": ingressHostname,
-            "imagePullSecrets.name": config.k8s_secret.name,
-            "imagePullSecrets.repository": config.container_repo.host,
+            "imagePullSecrets.name": configuration.k8s_secret.name,
+            "imagePullSecrets.repository": configuration.container_repo.host,
             "imagePullSecrets.username": env.USERNAME,
             "imagePullSecrets.password": env.PASSWORD,
             // "imagePullSecrets.email": "ServicePrincipal@AzureRM",
@@ -303,13 +338,13 @@ podTemplate(label: 'jenkins-pipeline',
 
         // build and publish container
         pipeline.containerBuildPub(
-            dockerfile: config.container_repo.dockerfile,
-            host      : config.container_repo.host,
+            dockerfile: configuration.container_repo.dockerfile,
+            host      : configuration.container_repo.host,
             acct      : acct,
-            repo      : config.container_repo.repo,
+            repo      : configuration.container_repo.repo,
             tags      : image_tags_list,
-            auth_id   : config.container_repo.jenkins_creds_id,
-            image_scanning: config.container_repo.image_scanning
+            auth_id   : configuration.container_repo.jenkins_creds_id,
+            image_scanning: configuration.container_repo.image_scanning
         )
       }
 
@@ -401,7 +436,7 @@ podTemplate(label: 'jenkins-pipeline',
         //
         container('helm') {
 
-          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
+          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: configuration.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
 
             pipeline.helmDeploy(
@@ -411,13 +446,13 @@ podTemplate(label: 'jenkins-pipeline',
                 chart_dir     : chart_dir,
                 set           : [
                   "imageTag": image_tags_list.get(0),
-                  "replicas": config.app.replicas,
-                  "cpu": config.app.cpu,
-                  "memory": config.app.memory,
+                  "replicas": configuration.app.replicas,
+                  "cpu": configuration.app.cpu,
+                  "memory": configuration.app.memory,
                   "ingress.enabled": ingressEnabled,
                   "ingress.hostname": ingressHostname,
-                  "imagePullSecrets.name": config.k8s_secret.name,
-                  "imagePullSecrets.repository": config.container_repo.host,
+                  "imagePullSecrets.name": configuration.k8s_secret.name,
+                  "imagePullSecrets.repository": configuration.container_repo.host,
                   "imagePullSecrets.username": env.USERNAME,
                   "imagePullSecrets.password": env.PASSWORD,
                   // "imagePullSecrets.email": "ServicePrincipal@AzureRM",
@@ -461,13 +496,13 @@ podTemplate(label: 'jenkins-pipeline',
       stage ('Create and Push Selenium Test Docker Image') {
         container('docker') {
           pipeline.containerBuildPub(
-              dockerfile: config.test_container_repo.dockerfile,
-              host      : config.test_container_repo.host,
+              dockerfile: configuration.test_container_repo.dockerfile,
+              host      : configuration.test_container_repo.host,
               acct      : acct,
-              repo      : config.test_container_repo.repo,
+              repo      : configuration.test_container_repo.repo,
               tags      : image_tags_list,
-              auth_id   : config.test_container_repo.jenkins_creds_id,
-              image_scanning: config.test_container_repo.image_scanning
+              auth_id   : configuration.test_container_repo.jenkins_creds_id,
+              image_scanning: configuration.test_container_repo.image_scanning
           )
         }
       }
@@ -509,7 +544,7 @@ podTemplate(label: 'jenkins-pipeline',
         
         //  Run helm tests
 
-        if (config.app.test) {
+        if (configuration.app.test) {
 
           // run tests
           container('helm') {
