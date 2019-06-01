@@ -248,7 +248,7 @@ podTemplate(label: 'jenkins-pipeline',
     String  seleniumNamespace     = configuration.seleniumNamespace
     boolean skipRemoveApp         = configuration.skipRemoveApp
     String  commitTag             = configuration.commitTag
-    def image_tags_list           = configuration.image_tags_list
+    def     image_tags_list       = configuration.image_tags_list
 
     // deployment variables:
     boolean ingressEnabled        = configuration.ingressEnabled
