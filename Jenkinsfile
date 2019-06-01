@@ -5,6 +5,7 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
+def pipeline = new io.estrado.Pipeline()
 def configuration = [:]
 
 configuration = [
@@ -47,60 +48,6 @@ configuration = [
       ]
   ]
 ]
-// Example:
-// configuration = [
-//   sharedSelenium:true,
-//   skipRemoveApp:true, 
-//   skipRemoveTestPods:false,
-//   showHelmTestLogs:true,
-//   debug:[
-//     helmStatus:false
-//   ]
-// ]
-
-// DEFAULTS
-configuration.alwaysPerformTests      = configuration.alwaysPerformTests != null     ?    configuration.alwaysPerformTests       : (env.getProperty('ALWAYS_PERFORM_TESTS')         != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')         == "true" ? true : false) : false)
-configuration.debugPipeline           = configuration.debugPipeline != null          ?    configuration.debugPipeline            : (env.getProperty('DEBUG_PIPELINE')               != null ? (env.getProperty('DEBUG_PIPELINE')               == "true" ? true : false) : false)
-configuration.sharedSelenium          = configuration.sharedSelenium != null         ?    configuration.sharedSelenium           : (env.getProperty('SHARED_SELENIUM')              != null ? (env.getProperty('SHARED_SELENIUM')              == "true" ? true : false) : false)
-// configuration.seleniumRelease:     will be set further below
-// configuration.seleniumNamespace:   will be set further below
-configuration.skipRemoveAppIfNotProd  = configuration.skipRemoveAppIfNotProd != null  ?    configuration.skipRemoveAppIfNotProd  : (env.getProperty('SKIP_REMOVE_APP_IF_NOT_PROD')  != null ? (env.getProperty('SKIP_REMOVE_APP_IF_NOT_PROD')  == "true" ? true : false) : false)
-configuration.skipRemoveTestPods      = configuration.skipRemoveTestPods != null      ?    configuration.skipRemoveTestPods      : (env.getProperty('SKIP_REMOVE_TEST_PODS')        != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')        == "true" ? true : false) : false)
-configuration.showHelmTestLogs        = configuration.showHelmTestLogs != null        ?    configuration.showHelmTestLogs        : (env.getProperty('SHOW_HELM_TEST_LOGS')          != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')          == "true" ? true : false) : true)
-configuration.debug                   = configuration.debug != null                   ?    configuration.debug                   : [:]
-configuration.debug.helmStatus        = configuration.debug.helmStatus != null        ?    configuration.debug.helmStatus        : (env.getProperty('DEBUG_HELM_STATUS')            != null ? (env.getProperty('DEBUG_HELM_STATUS')            == "true" ? true : false) : false)
-configuration.debug.envVars           = configuration.debug.envVars != null           ?    configuration.debug.envVars           : (env.getProperty('DEBUG_ENV_VARS')               != null ? (env.getProperty('DEBUG_ENV_VARS')            == "true" ? true : false) : false)
-configuration.helmTestRetry           = configuration.helmTestRetry != null           ?    configuration.helmTestRetry           : (env.getProperty('HELM_TEST_RETRY')              != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
-
-// TODO: move to pipeline:vars/configurationPrint.groovy
-//String call(Map configuration){
-String configurationPrintString = "Configuration:\n"
-  for (s in configuration) {
-    configurationPrintString += "${s.key.padRight(30)}:\t${s.value}\n"
-  }
-// return configurationPrintString
-// }
-echo configurationPrintString
-
-// INIT
-def pipeline = new io.estrado.Pipeline()
-boolean alwaysPerformTests   = configuration.alwaysPerformTests
-boolean debugPipeline        = configuration.debugPipeline
-boolean sharedSelenium       = configuration.sharedSelenium
-boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
-boolean showHelmTestLogs     = configuration.showHelmTestLogs
-boolean debugHelmStatus      = configuration.debug.helmStatus
-Integer helmTestRetry        = configuration.helmTestRetry
-
-String  appRelease            = "to-be-changed"
-String  appNamespace          = "to-be-changed"
-def     helmStatus
-String  testLog
-String  branchNameNormalized  = "to-be-changed"
-String  seleniumRelease       = "to-be-changed"
-String  seleniumNamespace     = "to-be-changed"
-boolean skipRemoveApp         = null
-String  commitTag             = "to-be-changed"
 
 
 podTemplate(label: 'jenkins-pipeline', 
@@ -160,30 +107,23 @@ podTemplate(label: 'jenkins-pipeline',
         numToKeepStr: '30')), 
       disableConcurrentBuilds()])
 
-    def pwd = pwd()
-    def chart_dir = "${pwd}/charts/croc-hunter"
+    // def pwd = pwd()
+    // def chart_dir = "${pwd}/charts/croc-hunter"
     // following vars are defined in stage 'Prepare and SCM' and are used in subsequent stages:
-    def inputFile
-    def config
-    def acct
+    // def inputFile
+    // def config
+    // def acct
     // def image_tags_map
-    def image_tags_list
-
-    // deployment variables:
-    // will be set in stage('Prepare and SCM')
-    boolean ingressEnabled = null
-    String  ingressHostname = "to-be-changed"
-    String  testIngressHostname = "to-be-changed"
-    String  testSeleniumHubUrl = "to-be-changed"
+    // def image_tags_list
 
     stage('Check out from SCM') {
 
       checkout scm
 
       // read in required jenkins workflow config values
-      inputFile = readFile('Jenkinsfile.json')
-      config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
-      println "pipeline config ==> ${config}"
+      // inputFile = readFile('Jenkinsfile.json')
+      // config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+      // println "pipeline config ==> ${config}"
 
 
       // // continue only if pipeline enabled
@@ -195,35 +135,48 @@ podTemplate(label: 'jenkins-pipeline',
 
     stage ('enrich configuration') {
 
+      // DEFAULTS
+      configuration.chart_dir = "${pwd()}/charts/croc-hunter"
+      configuration.alwaysPerformTests      = configuration.alwaysPerformTests != null     ?    configuration.alwaysPerformTests       : (env.getProperty('ALWAYS_PERFORM_TESTS')         != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')         == "true" ? true : false) : false)
+      configuration.debugPipeline           = configuration.debugPipeline != null          ?    configuration.debugPipeline            : (env.getProperty('DEBUG_PIPELINE')               != null ? (env.getProperty('DEBUG_PIPELINE')               == "true" ? true : false) : false)
+      configuration.sharedSelenium          = configuration.sharedSelenium != null         ?    configuration.sharedSelenium           : (env.getProperty('SHARED_SELENIUM')              != null ? (env.getProperty('SHARED_SELENIUM')              == "true" ? true : false) : false)
+      // configuration.seleniumRelease:     will be set further below
+      // configuration.seleniumNamespace:   will be set further below
+      configuration.skipRemoveAppIfNotProd  = configuration.skipRemoveAppIfNotProd != null  ?    configuration.skipRemoveAppIfNotProd  : (env.getProperty('SKIP_REMOVE_APP_IF_NOT_PROD')  != null ? (env.getProperty('SKIP_REMOVE_APP_IF_NOT_PROD')  == "true" ? true : false) : false)
+      configuration.skipRemoveTestPods      = configuration.skipRemoveTestPods != null      ?    configuration.skipRemoveTestPods      : (env.getProperty('SKIP_REMOVE_TEST_PODS')        != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')        == "true" ? true : false) : false)
+      configuration.showHelmTestLogs        = configuration.showHelmTestLogs != null        ?    configuration.showHelmTestLogs        : (env.getProperty('SHOW_HELM_TEST_LOGS')          != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')          == "true" ? true : false) : true)
+      configuration.debug                   = configuration.debug != null                   ?    configuration.debug                   : [:]
+      configuration.debug.helmStatus        = configuration.debug.helmStatus != null        ?    configuration.debug.helmStatus        : (env.getProperty('DEBUG_HELM_STATUS')            != null ? (env.getProperty('DEBUG_HELM_STATUS')            == "true" ? true : false) : false)
+      configuration.debug.envVars           = configuration.debug.envVars != null           ?    configuration.debug.envVars           : (env.getProperty('DEBUG_ENV_VARS')               != null ? (env.getProperty('DEBUG_ENV_VARS')            == "true" ? true : false) : false)
+      configuration.helmTestRetry           = configuration.helmTestRetry != null           ?    configuration.helmTestRetry           : (env.getProperty('HELM_TEST_RETRY')              != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
+
       // set commitTag
       String gitRevParseHead = sh script: 'git rev-parse HEAD', returnStdout: true
-      commitTag = gitRevParseHead.substring(0, 7).trim()
-      echo "commitTag = ${commitTag}"      
+      configuration.commitTag = gitRevParseHead.substring(0, 7).trim()
+      echo "commitTag = ${configuration.commitTag}"      
 
       // set branchNameNormalized:
       // - replaces '/' by '-' 
       // - shortens branch name, if needed. In that case, add a 6 Byte hash
-      branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
-      if (branchNameNormalized.length() > 30) {
+      configuration.branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
+      if (configuration.branchNameNormalized.length() > 30) {
         String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6 | tr -d '\\n' | tr -d '\\r'", returnStdout: true
-        branchNameNormalized = branchNameNormalized.take(24) + '-' + digest
-        if (debugPipeline) {
+        configuration.branchNameNormalized = configuration.branchNameNormalized.take(24) + '-' + digest
+        if (configuration.pipeline.debug) {
           echo "digest = ${digest}"
         }
       }
-      echo "branchNameNormalized = ${branchNameNormalized}"
-      configuration.branchNameNormalized = branchNameNormalized
+      echo "configuration.branchNameNormalized = ${configuration.branchNameNormalized}"
+      // configuration.branchNameNormalized = branchNameNormalized
 
       // set appRelease:
-      appRelease    = env.BRANCH_NAME == "prod" ? configuration.app.name : branchNameNormalized
-      appNamespace  = env.BRANCH_NAME == "prod" ? configuration.app.name : branchNameNormalized
-      skipRemoveApp = env.BRANCH_NAME == "prod" ? true                   : configuration.skipRemoveAppIfNotProd
+      configuration.appRelease    = env.BRANCH_NAME == "prod" ? configuration.app.name : branchNameNormalized
+      configuration.appNamespace  = env.BRANCH_NAME == "prod" ? configuration.app.name : branchNameNormalized
+      configuration.skipRemoveApp = env.BRANCH_NAME == "prod" ? true                   : configuration.skipRemoveAppIfNotProd
 
       // Set Selenium configuration
       configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (appRelease + '-selenium')
       configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : appNamespace
-      seleniumRelease   = configuration.seleniumRelease
-      seleniumNamespace = configuration.seleniumNamespace
 
       // set additional git envvars for image tagging
       pipeline.gitEnvVars()
@@ -242,28 +195,70 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      acct = pipeline.getContainerRepoAcct(config)
+      configuration.acct = pipeline.getContainerRepoAcct(config)
 
       // // tag image with version, and branch-commit_id
       // image_tags_map = pipeline.getContainerTags(config)
 
       // compile tag list
-      image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(config))
+      configuration.image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(config))
 
-      echo "image_tags_list = ${image_tags_list}"
+      echo "configuration.image_tags_list = ${configuration.image_tags_list}"
 
       // prepare deployment variables
-      testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
+      configuration.testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
       if(env.BRANCH_NAME ==~ /prod/) {
-        ingressEnabled = true
-        ingressHostname = configuration.app.hostname
-        testIngressHostname = configuration.app.hostname
+        configuration.ingressEnabled = true
+        configuration.ingressHostname = configuration.app.hostname
+        configuration.testIngressHostname = configuration.app.hostname
       } else {
-        ingressEnabled = false
-        ingressHostname = ""
-        testIngressHostname = "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local"
+        configuration.ingressEnabled = false
+        configuration.ingressHostname = ""
+        configuration.testIngressHostname = "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local"
       }
     }
+
+    // TODO: move to pipeline:vars/configurationPrint.groovy
+    //String call(Map configuration){
+    String configurationPrintString = "Configuration:\n"
+      for (s in configuration) {
+        configurationPrintString += "${s.key.padRight(30)}:\t${s.value}\n"
+      }
+    // return configurationPrintString
+    // }
+    echo configurationPrintString
+
+
+    // config vars:
+    def     acct                 = configuration.acct
+    String  chart_dir            = configuration.chart_dir
+    boolean alwaysPerformTests   = configuration.alwaysPerformTests
+    boolean debugPipeline        = configuration.debugPipeline
+    boolean sharedSelenium       = configuration.sharedSelenium
+    boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
+    boolean showHelmTestLogs     = configuration.showHelmTestLogs
+    boolean debugHelmStatus      = configuration.debug.helmStatus
+    Integer helmTestRetry        = configuration.helmTestRetry
+
+    String  appRelease            = configuration.appRelease
+    String  appNamespace          = configuration.appNamespace
+    String  branchNameNormalized  = configuration.branchNameNormalized
+    String  seleniumRelease       = configuration.seleniumRelease
+    String  seleniumNamespace     = configuration.seleniumNamespace
+    boolean skipRemoveApp         = configuration.skipRemoveApp
+    String  commitTag             = configuration.commitTag
+    def image_tags_list           = configuration.image_tags_list
+
+    // deployment variables:
+    boolean ingressEnabled        = configuration.ingressEnabled
+    String  ingressHostname       = configuration.ingressHostname
+    String  testIngressHostname   = configuration.testIngressHostname
+    String  testSeleniumHubUrl    = configuration.testSeleniumHubUrl
+
+    // working vars:
+    def     helmStatus
+    String  testLog
+
 
     stage ('initialize helm') {
       // initialize helm container
