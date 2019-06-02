@@ -107,15 +107,6 @@ podTemplate(label: 'jenkins-pipeline',
         numToKeepStr: '30')), 
       disableConcurrentBuilds()])
 
-    // def pwd = pwd()
-    // def chart_dir = "${pwd}/charts/croc-hunter"
-    // following vars are defined in stage 'Prepare and SCM' and are used in subsequent stages:
-    // def inputFile
-    // def config
-    // def acct
-    // def image_tags_map
-    // def image_tags_list
-
     stage('Check out from SCM') {
       checkout scm
     }
@@ -125,22 +116,6 @@ podTemplate(label: 'jenkins-pipeline',
       // DEFAULTS
       configuration.chart_dir               = "${pwd()}/charts/croc-hunter"
       pipeline.enrichConfiguration(configuration)
-
-      // // set additional git envvars for image tagging
-      // pipeline.gitEnvVars()
-
-      // // If pipeline debugging enabled
-      // if (configuration.debug.envVars) {
-      //   println "DEBUGGING of ENV VARS ENABLED"
-      //   sh "env | sort"
-      // }
-
-      // configuration.acct = pipeline.getContainerRepoAcct(configuration)
-
-      // configuration.image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(configuration))
-
-      // echo "configuration.image_tags_list = ${configuration.image_tags_list}"
-
       
       // prepare deployment variables
       // contains "croc-hunter", which is valid for this project only
@@ -157,14 +132,14 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
-    stage('preflight checks') {
-      println "Runing kubectl tests"
+    stage('preflight checks & init') {
+      println "Running kubectl tests"
       container('kubectl') {
         pipeline.kubectlTest()
       }
-      println "Runing helm tests"
+      println "Initializing helm"
       container('helm') {
-        pipeline.helmConfig()
+        pipeline.helmInit()
       }
     }
 
@@ -210,17 +185,6 @@ podTemplate(label: 'jenkins-pipeline',
     String  testLog
 
 
-    stage ('initialize helm') {
-      // initialize helm container
-      container('helm') {
-          // init
-          println "initialzing helm client"
-          sh "helm init"
-          println "checking client/server version"
-          sh "helm version"
-      }
-    }
-
     stage ('compile and test') {
 
       container('golang') {
@@ -229,6 +193,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
+    // TODO: replace by pipeline.helmPurgeNonDeployed() ??
     stage('clean old versions, if not DEPLOYED') {
       container('helm') {
         helmStatus = pipeline.helmStatus(
@@ -277,7 +242,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
-    stage ('publish docker image') {
+    stage ('publish docker image of app') {
 
       container('docker') {
 
