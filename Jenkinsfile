@@ -271,7 +271,7 @@ podTemplate(label: 'jenkins-pipeline',
         //       if so, this also needs to be changed in the stage "Selenium complete?"
         //
         container('helm') {
-          // delete and purge selenium, if present
+          // Delete and purge selenium, if present
           if ( !sharedSelenium ) {
             echo "delete and purge selenium, if present"
             sh """
@@ -280,7 +280,7 @@ podTemplate(label: 'jenkins-pipeline',
             """
           }
 
-          // always:
+          // Deploy Selenium:
           sh """
             # upgrade selenium revision. Install, if not present:
             helm upgrade --install ${seleniumRelease} stable/selenium \
@@ -295,14 +295,15 @@ podTemplate(label: 'jenkins-pipeline',
       // DEBUG
       if (debugHelmStatus) {
         stage('DEBUG: get helm status BEFORE Clean App'){
-          container('helm') {
-            helmStatus = pipeline.helmStatus(
-              name    : appRelease
-            )
-          }
-          container('kubectl'){
-            sh "kubectl -n ${appNamespace} get all || true"
-          }
+          pipeline.helmDebugInContainers(appRelease, appNamespace)
+          // container('helm') {
+          //   helmStatus = pipeline.helmStatus(
+          //     name    : appRelease
+          //   )
+          // }
+          // container('kubectl'){
+          //   sh "kubectl -n ${appNamespace} get all || true"
+          // }
         }
       }
 
