@@ -126,28 +126,46 @@ podTemplate(label: 'jenkins-pipeline',
       configuration.chart_dir               = "${pwd()}/charts/croc-hunter"
       pipeline.enrichConfiguration(configuration)
 
-      // set additional git envvars for image tagging
-      pipeline.gitEnvVars()
+      // // set additional git envvars for image tagging
+      // pipeline.gitEnvVars()
 
-      // If pipeline debugging enabled
-      if (configuration.debug.envVars) {
-        println "DEBUGGING of ENV VARS ENABLED"
-        sh "env | sort"
+      // // If pipeline debugging enabled
+      // if (configuration.debug.envVars) {
+      //   println "DEBUGGING of ENV VARS ENABLED"
+      //   sh "env | sort"
+      // }
 
-        println "Runing kubectl/helm tests"
-        container('kubectl') {
-          pipeline.kubectlTest()
-        }
-        container('helm') {
-          pipeline.helmConfig()
-        }
+      // configuration.acct = pipeline.getContainerRepoAcct(configuration)
+
+      // configuration.image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(configuration))
+
+      // echo "configuration.image_tags_list = ${configuration.image_tags_list}"
+
+      
+      // prepare deployment variables
+      // contains "croc-hunter", which is valid for this project only
+      // TODO: change by variables or remove "croc-hunter" altogether
+      configuration.testSeleniumHubUrl = "http://${configuration.seleniumRelease}-selenium-hub.${configuration.seleniumNamespace}.svc.cluster.local:4444/wd/hub"
+      if(env.BRANCH_NAME ==~ /prod/) {
+          configuration.ingressEnabled = true
+          configuration.ingressHostname = configuration.app.hostname
+          configuration.testIngressHostname = configuration.app.hostname
+      } else {
+          configuration.ingressEnabled = false
+          configuration.ingressHostname = ""
+          configuration.testIngressHostname = "${configuration.appRelease}-croc-hunter.${configuration.appNamespace}.svc.cluster.local"
       }
+    }
 
-      configuration.acct = pipeline.getContainerRepoAcct(configuration)
-
-      configuration.image_tags_list = pipeline.getMapValues(pipeline.getContainerTags(configuration))
-
-      echo "configuration.image_tags_list = ${configuration.image_tags_list}"
+    stage('preflight checks') {
+      println "Runing kubectl tests"
+      container('kubectl') {
+        pipeline.kubectlTest()
+      }
+      println "Runing helm tests"
+      container('helm') {
+        pipeline.helmConfig()
+      }
     }
 
     // TODO: move to pipeline:vars/configurationPrint.groovy
