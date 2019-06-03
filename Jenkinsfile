@@ -447,7 +447,7 @@ podTemplate(label: 'jenkins-pipeline',
       stage('delete completed PODs if present') {
         container('kubectl') {
           sh """
-          PODS=$(kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}')
+          PODS=\$(kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}')
           [ "\$PODS" != "" ] && echo \$PODS | xargs -n 1 kubectl -n ${appNamespace} delete pod
           """
         }
