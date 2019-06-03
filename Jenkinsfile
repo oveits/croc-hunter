@@ -187,20 +187,20 @@ podTemplate(label: 'jenkins-pipeline',
 
 
     stage ('build') {
-      container(configuration.programmingLanguage) {
+      container(configuration.app.programmingLanguage) {
         sh configuration.buildCommand
       }
     }
 
     stage ('unit test')  {
-      container(configuration.programmingLanguage) {
+      container(configuration.app.programmingLanguage) {
         sh configuration.unitTestCommand
       }
     }
 
     // stage ('compile and test') {
 
-    //   container(configuration.programmingLanguage) {
+    //   container(configuration.app.programmingLanguage) {
     //     sh "go test -v -race ./..."
     //     sh "make bootstrap build"
     //   }
