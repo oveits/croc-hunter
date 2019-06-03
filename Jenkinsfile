@@ -3,7 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@feature/0006-enrichConfiguration')
+@Library('github.com/oveits/jenkins-pipeline@develop')
 
 def pipeline = new io.estrado.Pipeline()
 def configuration = [:]
