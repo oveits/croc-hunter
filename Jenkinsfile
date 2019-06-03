@@ -11,6 +11,7 @@ def configuration = [:]
 configuration = [
   app:[
     name:"croc-hunter",
+    programmingLanguage:"golang",
     replicas:3,
     cpu:"10m",
     memory:"128Mi",
@@ -185,13 +186,25 @@ podTemplate(label: 'jenkins-pipeline',
     String  testLog
 
 
-    stage ('compile and test') {
-
-      container('golang') {
-        sh "go test -v -race ./..."
-        sh "make bootstrap build"
+    stage ('build') {
+      container(configuration.programmingLanguage) {
+        sh configuration.buildCommand
       }
     }
+
+    stage ('unit test')  {
+      container(configuration.programmingLanguage) {
+        sh configuration.unitTestCommand
+      }
+    }
+
+    // stage ('compile and test') {
+
+    //   container(configuration.programmingLanguage) {
+    //     sh "go test -v -race ./..."
+    //     sh "make bootstrap build"
+    //   }
+    // }
 
     // TODO: replace by pipeline.helmPurgeNonDeployed() ??
     stage('clean old versions, if not DEPLOYED') {
@@ -433,7 +446,10 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage('delete completed PODs if present') {
         container('kubectl') {
-          sh "kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${appNamespace} delete pod || true"
+          sh """
+          PODS=$(kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}')
+          [ "\$PODS" != "" ] && echo \$PODS | xargs -n 1 kubectl -n ${appNamespace} delete pod
+          """
         }
       }
 
