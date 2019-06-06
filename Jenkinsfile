@@ -233,7 +233,7 @@ podTemplate(label: 'jenkins-pipeline',
           name          : appRelease,
           namespace     : appNamespace,
           chart_dir     : chart_dir,
-          set-string    : [
+          set_string    : [
             "commit.sha": commitTag,
           ],
           set           : [
@@ -370,7 +370,7 @@ podTemplate(label: 'jenkins-pipeline',
                 name          : appRelease,
                 namespace     : appNamespace,
                 chart_dir     : chart_dir,
-                set-string    : [
+                set_string    : [
                   "commit.sha": commitTag,
                 ],
                 set           : [
