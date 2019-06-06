@@ -3,7 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@develop')
+@Library('github.com/oveits/jenkins-pipeline@feature/0007-helm-set-string-support')
 
 def pipeline = new io.estrado.Pipeline()
 def configuration = [:]
@@ -233,6 +233,9 @@ podTemplate(label: 'jenkins-pipeline',
           name          : appRelease,
           namespace     : appNamespace,
           chart_dir     : chart_dir,
+          set-string    : [
+            "commit.sha": commitTag,
+          ],
           set           : [
             "imageTag": image_tags_list.get(0),
             "replicas": configuration.app.replicas,
@@ -248,8 +251,7 @@ podTemplate(label: 'jenkins-pipeline',
             "test.seleniumHubUrl": testSeleniumHubUrl,
             "test.ingressHostname": testIngressHostname,
             "test.imageTag": image_tags_list.get(0),
-            "test.releaseName": appRelease,
-            "commit.sha": commitTag,
+            "test.releaseName": appRelease,   
           ]
         )
       }
@@ -368,6 +370,9 @@ podTemplate(label: 'jenkins-pipeline',
                 name          : appRelease,
                 namespace     : appNamespace,
                 chart_dir     : chart_dir,
+                set-string    : [
+                  "commit.sha": commitTag,
+                ],
                 set           : [
                   "imageTag": image_tags_list.get(0),
                   "replicas": configuration.app.replicas,
@@ -384,7 +389,6 @@ podTemplate(label: 'jenkins-pipeline',
                   "test.ingressHostname": testIngressHostname,
                   "test.imageTag": image_tags_list.get(0),
                   "test.releaseName": appRelease,
-                  "commit.sha": commitTag,
                 ]
               )
           }
