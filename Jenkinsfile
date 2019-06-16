@@ -3,9 +3,12 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@develop')
+@Library('github.com/oveits/jenkins-pipeline@feature/0009-refactor-into-separate-files-config-helm-kube')
 
 def pipeline = new io.estrado.Pipeline()
+// def pipelineConfiguration = new com.vocon-it.pipeline.Configuration()
+// def pipelineHelm = new com.vocon-it.pipeline.Helm()
+// def pipelineKube = new com.vocon-it.pipeline.Kube()
 def configuration = [:]
 
 configuration = [
@@ -116,7 +119,7 @@ podTemplate(label: 'jenkins-pipeline',
 
       // DEFAULTS
       configuration.chart_dir               = "${pwd()}/charts/croc-hunter"
-      pipeline.enrichConfiguration(configuration)
+      configuration = pipeline.setDefaults(configuration)
       
       // prepare deployment variables
       // contains "croc-hunter", which is valid for this project only
