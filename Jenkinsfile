@@ -3,7 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@develop')
+@Library('github.com/oveits/jenkins-pipeline@hotfix/0008-2-fix-configuration-not-found')
 
 def pipeline = new io.estrado.Pipeline()
 def configuration = [:]
