@@ -6,10 +6,10 @@
 @Library('github.com/oveits/jenkins-pipeline@feature/0009-refactor-into-separate-files-config-helm-kube')
 
 def pipeline = [:]
-pipeline.configuration = new com.vocon-it.pipeline.Configuration()
-pipeline.docker = new com.vocon-it.pipeline.Docker()
-pipeline.helm = new com.vocon-it.pipeline.Helm()
-pipeline.kubectl = new com.vocon-it.pipeline.Kubectl()
+pipeline.configuration = new com.voconit.pipeline.Configuration()
+pipeline.docker = new com.voconit.pipeline.Docker()
+pipeline.helm = new com.voconit.pipeline.Helm()
+pipeline.kubectl = new com.voconit.pipeline.Kubectl()
 
 def configuration = [:]
 configuration = [
