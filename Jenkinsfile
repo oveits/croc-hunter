@@ -263,7 +263,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
-    if (alwaysPerformTests || env.BRANC
+    if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop" || env.BRANCH_NAME ==~ /prod/) {
       stage('Deploy Selenium') {
         //
         // Deploy Selenium using Helm chart
