@@ -172,10 +172,12 @@ podTemplate(label: 'jenkins-pipeline',
 
     String  appRelease            = configuration.appRelease
     String  appNamespace          = configuration.appNamespace
+    String  buildCommand          = configuration.buildCommand
     String  branchNameNormalized  = configuration.branchNameNormalized
     String  seleniumRelease       = configuration.seleniumRelease
     String  seleniumNamespace     = configuration.seleniumNamespace
     boolean skipRemoveApp         = configuration.skipRemoveApp
+    String  unitTestCommand       = configuration.unitTestCommand
     String  commitTag             = configuration.commitTag
     def     image_tags_list       = configuration.image_tags_list
 
@@ -192,34 +194,27 @@ podTemplate(label: 'jenkins-pipeline',
 
     stage ('build') {
       container(configuration.app.programmingLanguage) {
-        sh configuration.buildCommand
+        sh buildCommand
       }
     }
 
     stage ('unit test')  {
       container(configuration.app.programmingLanguage) {
-        sh configuration.unitTestCommand
+        sh unitTestCommand
       }
     }
 
     // TODO: replace by pipeline.helm.purgeNonDeployed() ??
     stage('clean old versions, if not DEPLOYED') {
       container('helm') {
-        helmStatus = pipeline.helm.status(
-          name    : appRelease
-        )
-        if(helmStatus && helmStatus.info && helmStatus.info.status && helmStatus.info.status.code != 1) {
-          sh """
-            helm delete --purge ${appRelease}
-          """
+        if(pipeline.helm.status(name: appRelease)?.info?.status?.code != 1) {
+          pipeline.helm.delete(name:appRelease)
         }
       }
     }
 
     stage ('deployment dry-run') {
-
       container('helm') {
-
         // run helm chart linter
         pipeline.helm.lint(chart_dir)
 
@@ -254,9 +249,7 @@ podTemplate(label: 'jenkins-pipeline',
     }
 
     stage ('publish docker image of app') {
-
       container('docker') {
-
         // build and publish container
         pipeline.docker.buildAndPublish(
             dockerfile: configuration.container_repo.dockerfile,
@@ -268,11 +261,9 @@ podTemplate(label: 'jenkins-pipeline',
             image_scanning: configuration.container_repo.image_scanning
         )
       }
-
     }
 
-    if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop" || env.BRANCH_NAME ==~ /prod/) {
-
+    if (alwaysPerformTests || env.BRANC
       stage('Deploy Selenium') {
         //
         // Deploy Selenium using Helm chart
@@ -281,16 +272,22 @@ podTemplate(label: 'jenkins-pipeline',
         // TODO: in the moment, only a single Chrome Selenium Node is started (hard-coded). Please make this dynamic
         //       if so, this also needs to be changed in the stage "Selenium complete?"
         //
-        container('helm') {
-          // Delete and purge selenium, if present
-          if ( !sharedSelenium ) {
-            echo "delete and purge selenium, if present"
-            sh """
-              helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
-                && helm delete --purge ${seleniumRelease} || true
-            """
-          }
 
+        // Delete and purge selenium, if present
+        if ( !sharedSelenium ) {
+          echo "delete and purge selenium, if present"
+          container('helm') {
+            if(pipeline.helm.status(name: seleniumRelease)?.info?.status?.code != 1) {
+              pipeline.helm.delete(name:seleniumRelease)
+            }
+            // sh """
+            //   helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
+            //     && helm delete --purge ${seleniumRelease} || true
+            // """
+          }
+        }
+
+        container('helm') {
           // Deploy Selenium:
           sh """
             # upgrade selenium revision. Install, if not present:
@@ -300,7 +297,6 @@ podTemplate(label: 'jenkins-pipeline',
               --force
           """
         }
-
       }
    
       if (debugHelmStatus) {
