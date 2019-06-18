@@ -422,17 +422,9 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      stage('delete completed PODs if present') {
+      stage('delete completed and failed PODs if present') {
         container('kubectl') {
-          pipeline.kubectl.deleteObsoletePods(appNamespace)
-          // sh """
-          // PODS=\$(kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}')
-          // if [ "\$PODS" != "" ]; then
-          //   echo \$PODS | xargs -n 1 kubectl -n ${appNamespace} delete pod
-          // else
-          //   echo "no completed PODs found; continuing"
-          // fi
-          // """
+          pipeline.kubectl.deleteObsoletePods(namespace: appNamespace)
         }
       }
 
