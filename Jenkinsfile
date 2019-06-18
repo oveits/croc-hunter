@@ -5,60 +5,50 @@
 
 @Library('github.com/oveits/jenkins-pipeline@develop')
 
+def pipeline = new io.estrado.Pipeline()
 def configuration = [:]
 
-// Example:
-// configuration = [
-//   sharedSelenium:true,
-//   skipRemoveApp:true, 
-//   skipRemoveTestPods:false,
-//   showHelmTestLogs:true,
-//   debug:[
-//     helmStatus:false
-//   ]
-// ]
-
-// DEFAULTS
-configuration.alwaysPerformTests      = configuration.alwaysPerformTests != null     ?    configuration.alwaysPerformTests       : (env.getProperty('ALWAYS_PERFORM_TESTS')         != null ? (env.getProperty('ALWAYS_PERFORM_TESTS')         == "true" ? true : false) : false)
-configuration.debugPipeline           = configuration.debugPipeline != null          ?    configuration.debugPipeline            : (env.getProperty('DEBUG_PIPELINE')               != null ? (env.getProperty('DEBUG_PIPELINE')               == "true" ? true : false) : false)
-configuration.sharedSelenium          = configuration.sharedSelenium != null         ?    configuration.sharedSelenium           : (env.getProperty('SHARED_SELENIUM')              != null ? (env.getProperty('SHARED_SELENIUM')              == "true" ? true : false) : false)
-// configuration.seleniumRelease:     will be set further below
-// configuration.seleniumNamespace:   will be set further below
-configuration.skipRemoveAppIfNotProd  = configuration.skipRemoveAppIfNotProd != null  ?    configuration.skipRemoveAppIfNotProd  : (env.getProperty('SKIP_REMOVE_APP_IF_NOT_PROD')  != null ? (env.getProperty('SKIP_REMOVE_APP_IF_NOT_PROD')  == "true" ? true : false) : false)
-configuration.skipRemoveTestPods      = configuration.skipRemoveTestPods != null      ?    configuration.skipRemoveTestPods      : (env.getProperty('SKIP_REMOVE_TEST_PODS')        != null ? (env.getProperty('SKIP_REMOVE_TEST_PODS')        == "true" ? true : false) : false)
-configuration.showHelmTestLogs        = configuration.showHelmTestLogs != null        ?    configuration.showHelmTestLogs        : (env.getProperty('SHOW_HELM_TEST_LOGS')          != null ? (env.getProperty('SHOW_HELM_TEST_LOGS')          == "true" ? true : false) : true)
-configuration.debug                   = configuration.debug != null                   ?    configuration.debug                   : [:]
-configuration.debug.helmStatus        = configuration.debug.helmStatus != null        ?    configuration.debug.helmStatus        : (env.getProperty('DEBUG_HELM_STATUS')            != null ? (env.getProperty('DEBUG_HELM_STATUS')            == "true" ? true : false) : false)
-configuration.helmTestRetry           = configuration.helmTestRetry != null           ?    configuration.helmTestRetry           : (env.getProperty('HELM_TEST_RETRY')              != null ? env.getProperty('HELM_TEST_RETRY').toInteger()                        : 0)
-
-// TODO: move to pipeline:vars/configurationPrint.groovy
-//String call(Map configuration){
-String configurationPrintString = "Configuration:\n"
-  for (s in configuration) {
-    configurationPrintString += "${s.key.padRight(30)}:\t${s.value}\n"
-  }
-// return configurationPrintString
-// }
-echo configurationPrintString
-
-// INIT
-def pipeline = new io.estrado.Pipeline()
-boolean alwaysPerformTests   = configuration.alwaysPerformTests
-boolean debugPipeline        = configuration.debugPipeline
-boolean sharedSelenium       = configuration.sharedSelenium
-boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
-boolean showHelmTestLogs     = configuration.showHelmTestLogs
-boolean debugHelmStatus      = configuration.debug.helmStatus
-Integer helmTestRetry        = configuration.helmTestRetry
-
-String  appRelease            = "to-be-changed"
-String  appNamespace          = "to-be-changed"
-def helmStatus
-String  testLog
-String  branchNameNormalized  = "to-be-changed"
-String  seleniumRelease       = "to-be-changed"
-String  seleniumNamespace     = "to-be-changed"
-boolean skipRemoveApp         = null
+configuration = [
+  app:[
+    name:"croc-hunter",
+    programmingLanguage:"golang",
+    replicas:3,
+    cpu:"10m",
+    memory:"128Mi",
+    test: true,
+    hostname:"crochunter.vocon-it.com"
+  ],
+  k8s_secret:[
+    name:"croc-hunter-secrets"
+  ],
+  container_repo:[
+    host:"docker.io",
+    master_acct:"oveits",
+    alt_acct:"oveits",
+    jenkins_creds_id:"oveits_docker_hub",
+    repo:"crochunter",
+    dockeremail:".",
+    dockerfile:"./",
+    image_scanning:false
+  ],
+  test_container_repo:[
+    host:"docker.io",
+    master_acct:"oveits",
+    alt_acct:"oveits",
+    jenkins_creds_id:"oveits_docker_hub",
+    repo:"crochunter-tests",
+    dockeremail:".",
+    dockerfile:"./tests/",
+    image_scanning:false
+  ],
+  pipeline:[
+      enabled:true,
+      debug:true,
+      library:[
+        branch:"dev"
+      ]
+  ]
+]
 
 
 podTemplate(label: 'jenkins-pipeline', 
@@ -118,122 +108,105 @@ podTemplate(label: 'jenkins-pipeline',
         numToKeepStr: '30')), 
       disableConcurrentBuilds()])
 
-    def pwd = pwd()
-    def chart_dir = "${pwd}/charts/croc-hunter"
-    // following vars are defined in stage 'Prepare and SCM' and are used in subsequent stages:
-    def inputFile
-    def config
-    def acct
-    def image_tags_map
-    def image_tags_list
+    stage('Check out from SCM') {
+      checkout scm
+    }
+
+    stage ('enrich configuration') {
+
+      // DEFAULTS
+      configuration.chart_dir               = "${pwd()}/charts/croc-hunter"
+      pipeline.enrichConfiguration(configuration)
+      
+      // prepare deployment variables
+      // contains "croc-hunter", which is valid for this project only
+      // TODO: change by variables or remove "croc-hunter" altogether
+      configuration.testSeleniumHubUrl = "http://${configuration.seleniumRelease}-selenium-hub.${configuration.seleniumNamespace}.svc.cluster.local:4444/wd/hub"
+      if(env.BRANCH_NAME ==~ /prod/) {
+          configuration.ingressEnabled = true
+          configuration.ingressHostname = configuration.app.hostname
+          configuration.testIngressHostname = configuration.app.hostname
+      } else {
+          configuration.ingressEnabled = false
+          configuration.ingressHostname = ""
+          configuration.testIngressHostname = "${configuration.appRelease}-croc-hunter.${configuration.appNamespace}.svc.cluster.local"
+      }
+    }
+
+    stage('preflight checks & init') {
+      println "Running kubectl tests"
+      container('kubectl') {
+        pipeline.kubectlTest()
+      }
+      println "Initializing helm"
+      container('helm') {
+        pipeline.helmInit()
+      }
+    }
+
+    // TODO: move to pipeline:vars/configurationPrint.groovy
+    //String call(Map configuration){
+    String configurationPrintString = "Configuration:\n"
+      for (s in configuration) {
+        configurationPrintString += "${s.key.padRight(30)}:\t${s.value}\n"
+      }
+    // return configurationPrintString
+    // }
+    echo configurationPrintString
+
+
+    // config vars:
+    def     acct                 = configuration.acct
+    String  chart_dir            = configuration.chart_dir
+    boolean alwaysPerformTests   = configuration.alwaysPerformTests
+    boolean debugPipeline        = configuration.debugPipeline
+    boolean sharedSelenium       = configuration.sharedSelenium
+    boolean skipRemoveTestPods   = configuration.skipRemoveTestPods
+    boolean showHelmTestLogs     = configuration.showHelmTestLogs
+    boolean debugHelmStatus      = configuration.debug.helmStatus
+    Integer helmTestRetry        = configuration.helmTestRetry
+
+    String  appRelease            = configuration.appRelease
+    String  appNamespace          = configuration.appNamespace
+    String  branchNameNormalized  = configuration.branchNameNormalized
+    String  seleniumRelease       = configuration.seleniumRelease
+    String  seleniumNamespace     = configuration.seleniumNamespace
+    boolean skipRemoveApp         = configuration.skipRemoveApp
+    String  commitTag             = configuration.commitTag
+    def     image_tags_list       = configuration.image_tags_list
 
     // deployment variables:
-    // will be set in stage('Prepare and SCM')
-    boolean ingressEnabled = null
-    String  ingressHostname = "to-be-changed"
-    String  testIngressHostname = "to-be-changed"
-    String  testSeleniumHubUrl = "to-be-changed"
+    boolean ingressEnabled        = configuration.ingressEnabled
+    String  ingressHostname       = configuration.ingressHostname
+    String  testIngressHostname   = configuration.testIngressHostname
+    String  testSeleniumHubUrl    = configuration.testSeleniumHubUrl
 
-    stage('Prepare and SCM') {
-
-      checkout scm
-
-      env.GIT_SHA = sh script: "echo \${GIT_REVISION:0:7}", returnStdout: true
-
-      // Create normalized branch name
-      // - replaces '/' by '-' 
-      // - shortens branch name, if needed. In that case, add a 6 Byte hash
-      branchNameNormalized = env.BRANCH_NAME.toLowerCase().replaceAll('/','-')
-      if (branchNameNormalized.length() > 30) {
-        String digest = sh script: "echo ${env.BRANCH_NAME} | md5sum | cut -c1-6 | tr -d '\\n' | tr -d '\\r'", returnStdout: true
-        branchNameNormalized = branchNameNormalized.take(24) + '-' + digest
-        if (debugPipeline) {
-          echo "digest = ${digest}"
-        }
-      }
-      echo "branchNameNormalized = ${branchNameNormalized}"
-      configuration.branchNameNormalized = branchNameNormalized
-
-      // read in required jenkins workflow config values
-      inputFile = readFile('Jenkinsfile.json')
-      config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
-      println "pipeline config ==> ${config}"
-
-      // set appRelease:
-      appRelease    = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
-      appNamespace  = env.BRANCH_NAME == "prod" ? config.app.name : branchNameNormalized
-      skipRemoveApp = env.BRANCH_NAME == "prod" ? true            : configuration.skipRemoveAppIfNotProd
-
-      // Set Selenium configuration
-      configuration.seleniumRelease       = configuration.sharedSelenium == true      ?    'selenium'   : (appRelease + '-selenium')
-      configuration.seleniumNamespace     = configuration.sharedSelenium == true      ?    'selenium'   : appNamespace
-      seleniumRelease   = configuration.seleniumRelease
-      seleniumNamespace = configuration.seleniumNamespace
+    // working vars:
+    def     helmStatus
+    String  testLog
 
 
-      // continue only if pipeline enabled
-      if (!config.pipeline.enabled) {
-          println "pipeline disabled"
-          return
-      }
-
-      // set additional git envvars for image tagging
-      pipeline.gitEnvVars()
-
-      // If pipeline debugging enabled
-      if (config.pipeline.debug) {
-        println "DEBUG ENABLED"
-        sh "env | sort"
-
-        println "Runing kubectl/helm tests"
-        container('kubectl') {
-          pipeline.kubectlTest()
-        }
-        container('helm') {
-          pipeline.helmConfig()
-        }
-      }
-
-      acct = pipeline.getContainerRepoAcct(config)
-
-      // tag image with version, and branch-commit_id
-      image_tags_map = pipeline.getContainerTags(config)
-
-      // compile tag list
-      image_tags_list = pipeline.getMapValues(image_tags_map)
-
-      echo "image_tags_list = ${image_tags_list}"
-
-      // initialize helm container
-      container('helm') {
-          // init
-          println "initialzing helm client"
-          sh "helm init"
-          println "checking client/server version"
-          sh "helm version"
-      }
-
-      // prepare deployment variables
-      testSeleniumHubUrl = "http://${seleniumRelease}-selenium-hub.${seleniumNamespace}.svc.cluster.local:4444/wd/hub"
-      if(env.BRANCH_NAME ==~ /prod/) {
-        ingressEnabled = true
-        ingressHostname = config.app.hostname
-        testIngressHostname = config.app.hostname
-      } else {
-        ingressEnabled = false
-        ingressHostname = ""
-        testIngressHostname = "${appRelease}-croc-hunter.${appNamespace}.svc.cluster.local"
+    stage ('build') {
+      container(configuration.app.programmingLanguage) {
+        sh configuration.buildCommand
       }
     }
 
-    stage ('compile and test') {
-
-      container('golang') {
-        sh "go test -v -race ./..."
-        sh "make bootstrap build"
+    stage ('unit test')  {
+      container(configuration.app.programmingLanguage) {
+        sh configuration.unitTestCommand
       }
     }
 
+    // stage ('compile and test') {
+
+    //   container(configuration.app.programmingLanguage) {
+    //     sh "go test -v -race ./..."
+    //     sh "make bootstrap build"
+    //   }
+    // }
+
+    // TODO: replace by pipeline.helmPurgeNonDeployed() ??
     stage('clean old versions, if not DEPLOYED') {
       container('helm') {
         helmStatus = pipeline.helmStatus(
@@ -247,7 +220,7 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
-    stage ('test deployment') {
+    stage ('deployment dry-run') {
 
       container('helm') {
 
@@ -260,41 +233,43 @@ podTemplate(label: 'jenkins-pipeline',
           name          : appRelease,
           namespace     : appNamespace,
           chart_dir     : chart_dir,
+          set_string    : [
+            "commit.sha": commitTag,
+          ],
           set           : [
             "imageTag": image_tags_list.get(0),
-            "replicas": config.app.replicas,
-            "cpu": config.app.cpu,
-            "memory": config.app.memory,
+            "replicas": configuration.app.replicas,
+            "cpu": configuration.app.cpu,
+            "memory": configuration.app.memory,
             "ingress.enabled": ingressEnabled,
             "ingress.hostname": ingressHostname,
-            "imagePullSecrets.name": config.k8s_secret.name,
-            "imagePullSecrets.repository": config.container_repo.host,
+            "imagePullSecrets.name": configuration.k8s_secret.name,
+            "imagePullSecrets.repository": configuration.container_repo.host,
             "imagePullSecrets.username": env.USERNAME,
             "imagePullSecrets.password": env.PASSWORD,
             // "imagePullSecrets.email": "ServicePrincipal@AzureRM",
             "test.seleniumHubUrl": testSeleniumHubUrl,
             "test.ingressHostname": testIngressHostname,
             "test.imageTag": image_tags_list.get(0),
-            "test.releaseName": appRelease,
-            "commit.sha": env.GIT_SHA,
+            "test.releaseName": appRelease,   
           ]
         )
       }
     }
 
-    stage ('publish docker image') {
+    stage ('publish docker image of app') {
 
       container('docker') {
 
         // build and publish container
         pipeline.containerBuildPub(
-            dockerfile: config.container_repo.dockerfile,
-            host      : config.container_repo.host,
+            dockerfile: configuration.container_repo.dockerfile,
+            host      : configuration.container_repo.host,
             acct      : acct,
-            repo      : config.container_repo.repo,
+            repo      : configuration.container_repo.repo,
             tags      : image_tags_list,
-            auth_id   : config.container_repo.jenkins_creds_id,
-            image_scanning: config.container_repo.image_scanning
+            auth_id   : configuration.container_repo.jenkins_creds_id,
+            image_scanning: configuration.container_repo.image_scanning
         )
       }
 
@@ -311,7 +286,7 @@ podTemplate(label: 'jenkins-pipeline',
         //       if so, this also needs to be changed in the stage "Selenium complete?"
         //
         container('helm') {
-          // delete and purge selenium, if present
+          // Delete and purge selenium, if present
           if ( !sharedSelenium ) {
             echo "delete and purge selenium, if present"
             sh """
@@ -320,7 +295,7 @@ podTemplate(label: 'jenkins-pipeline',
             """
           }
 
-          // always:
+          // Deploy Selenium:
           sh """
             # upgrade selenium revision. Install, if not present:
             helm upgrade --install ${seleniumRelease} stable/selenium \
@@ -335,14 +310,15 @@ podTemplate(label: 'jenkins-pipeline',
       // DEBUG
       if (debugHelmStatus) {
         stage('DEBUG: get helm status BEFORE Clean App'){
-          container('helm') {
-            helmStatus = pipeline.helmStatus(
-              name    : appRelease
-            )
-          }
-          container('kubectl'){
-            sh "kubectl -n ${appNamespace} get all || true"
-          }
+          pipeline.helmDebugInContainers(appRelease, appNamespace)
+          // container('helm') {
+          //   helmStatus = pipeline.helmStatus(
+          //     name    : appRelease
+          //   )
+          // }
+          // container('kubectl'){
+          //   sh "kubectl -n ${appNamespace} get all || true"
+          // }
         }
       }
 
@@ -386,7 +362,7 @@ podTemplate(label: 'jenkins-pipeline',
         //
         container('helm') {
 
-          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: config.container_repo.jenkins_creds_id,
+          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: configuration.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
 
             pipeline.helmDeploy(
@@ -394,15 +370,18 @@ podTemplate(label: 'jenkins-pipeline',
                 name          : appRelease,
                 namespace     : appNamespace,
                 chart_dir     : chart_dir,
+                set_string    : [
+                  "commit.sha": commitTag,
+                ],
                 set           : [
                   "imageTag": image_tags_list.get(0),
-                  "replicas": config.app.replicas,
-                  "cpu": config.app.cpu,
-                  "memory": config.app.memory,
+                  "replicas": configuration.app.replicas,
+                  "cpu": configuration.app.cpu,
+                  "memory": configuration.app.memory,
                   "ingress.enabled": ingressEnabled,
                   "ingress.hostname": ingressHostname,
-                  "imagePullSecrets.name": config.k8s_secret.name,
-                  "imagePullSecrets.repository": config.container_repo.host,
+                  "imagePullSecrets.name": configuration.k8s_secret.name,
+                  "imagePullSecrets.repository": configuration.container_repo.host,
                   "imagePullSecrets.username": env.USERNAME,
                   "imagePullSecrets.password": env.PASSWORD,
                   // "imagePullSecrets.email": "ServicePrincipal@AzureRM",
@@ -410,7 +389,6 @@ podTemplate(label: 'jenkins-pipeline',
                   "test.ingressHostname": testIngressHostname,
                   "test.imageTag": image_tags_list.get(0),
                   "test.releaseName": appRelease,
-                  "commit.sha": env.GIT_SHA,
                 ]
               )
           }
@@ -446,13 +424,13 @@ podTemplate(label: 'jenkins-pipeline',
       stage ('Create and Push Selenium Test Docker Image') {
         container('docker') {
           pipeline.containerBuildPub(
-              dockerfile: config.test_container_repo.dockerfile,
-              host      : config.test_container_repo.host,
+              dockerfile: configuration.test_container_repo.dockerfile,
+              host      : configuration.test_container_repo.host,
               acct      : acct,
-              repo      : config.test_container_repo.repo,
+              repo      : configuration.test_container_repo.repo,
               tags      : image_tags_list,
-              auth_id   : config.test_container_repo.jenkins_creds_id,
-              image_scanning: config.test_container_repo.image_scanning
+              auth_id   : configuration.test_container_repo.jenkins_creds_id,
+              image_scanning: configuration.test_container_repo.image_scanning
           )
         }
       }
@@ -472,7 +450,14 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage('delete completed PODs if present') {
         container('kubectl') {
-          sh "kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}' | xargs -n 1 kubectl -n ${appNamespace} delete pod || true"
+          sh """
+          PODS=\$(kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}')
+          if [ "\$PODS" != "" ]; then
+            echo \$PODS | xargs -n 1 kubectl -n ${appNamespace} delete pod
+          else
+            echo "no completed PODs found; continuing"
+          fi
+          """
         }
       }
 
@@ -494,7 +479,7 @@ podTemplate(label: 'jenkins-pipeline',
         
         //  Run helm tests
 
-        if (config.app.test) {
+        if (configuration.app.test) {
 
           // run tests
           container('helm') {
