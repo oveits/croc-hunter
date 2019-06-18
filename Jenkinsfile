@@ -3,11 +3,15 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@develop')
+@Library('github.com/oveits/jenkins-pipeline@feature/0009-refactor-into-separate-files-config-helm-kube')
 
-def pipeline = new io.estrado.Pipeline()
+def pipeline = [:]
+pipeline.configuration = new com.vocon_it.pipeline.Configuration()
+pipeline.docker = new com.vocon_it.pipeline.Docker()
+pipeline.helm = new com.vocon_it.pipeline.Helm()
+pipeline.kubectl = new com.vocon_it.pipeline.Kubectl()
+
 def configuration = [:]
-
 configuration = [
   app:[
     name:"croc-hunter",
@@ -116,7 +120,7 @@ podTemplate(label: 'jenkins-pipeline',
 
       // DEFAULTS
       configuration.chart_dir               = "${pwd()}/charts/croc-hunter"
-      pipeline.enrichConfiguration(configuration)
+      configuration = pipeline.configuration.setDefaults(configuration)
       
       // prepare deployment variables
       // contains "croc-hunter", which is valid for this project only
@@ -134,13 +138,13 @@ podTemplate(label: 'jenkins-pipeline',
     }
 
     stage('preflight checks & init') {
-      println "Running kubectl tests"
+      println "Test kubectl connectivity"
       container('kubectl') {
-        pipeline.kubectlTest()
+        pipeline.kubectl.getNodes()
       }
       println "Initializing helm"
       container('helm') {
-        pipeline.helmInit()
+        pipeline.helm.init()
       }
     }
 
@@ -198,18 +202,10 @@ podTemplate(label: 'jenkins-pipeline',
       }
     }
 
-    // stage ('compile and test') {
-
-    //   container(configuration.app.programmingLanguage) {
-    //     sh "go test -v -race ./..."
-    //     sh "make bootstrap build"
-    //   }
-    // }
-
-    // TODO: replace by pipeline.helmPurgeNonDeployed() ??
+    // TODO: replace by pipeline.helm.purgeNonDeployed() ??
     stage('clean old versions, if not DEPLOYED') {
       container('helm') {
-        helmStatus = pipeline.helmStatus(
+        helmStatus = pipeline.helm.status(
           name    : appRelease
         )
         if(helmStatus && helmStatus.info && helmStatus.info.status && helmStatus.info.status.code != 1) {
@@ -225,10 +221,10 @@ podTemplate(label: 'jenkins-pipeline',
       container('helm') {
 
         // run helm chart linter
-        pipeline.helmLint(chart_dir)
+        pipeline.helm.lint(chart_dir)
 
         // run dry-run helm chart installation
-        pipeline.helmDeploy (
+        pipeline.helm.deploy (
           dry_run       : true,
           name          : appRelease,
           namespace     : appNamespace,
@@ -262,7 +258,7 @@ podTemplate(label: 'jenkins-pipeline',
       container('docker') {
 
         // build and publish container
-        pipeline.containerBuildPub(
+        pipeline.docker.buildAndPublish(
             dockerfile: configuration.container_repo.dockerfile,
             host      : configuration.container_repo.host,
             acct      : acct,
@@ -307,18 +303,16 @@ podTemplate(label: 'jenkins-pipeline',
 
       }
    
-      // DEBUG
       if (debugHelmStatus) {
-        stage('DEBUG: get helm status BEFORE Clean App'){
-          pipeline.helmDebugInContainers(appRelease, appNamespace)
-          // container('helm') {
-          //   helmStatus = pipeline.helmStatus(
-          //     name    : appRelease
-          //   )
-          // }
-          // container('kubectl'){
-          //   sh "kubectl -n ${appNamespace} get all || true"
-          // }
+        stage('DEBUG: get helm status BEFORE Clean App') {
+          container('helm') {
+            helmStatus = pipeline.helm.status(
+              name    : appRelease
+            )
+          }        
+          container('kubectl') {
+            sh "kubectl -n ${appNamespace} get all || true"
+          }
         }
       }
 
@@ -346,7 +340,7 @@ podTemplate(label: 'jenkins-pipeline',
         if (debugHelmStatus) {
           stage('DEBUG: get helm status AFTER Clean App'){
             container('helm') {
-              helmStatus = pipeline.helmStatus(
+              helmStatus = pipeline.helm.status(
                 name    : appRelease
               )
             }
@@ -365,7 +359,7 @@ podTemplate(label: 'jenkins-pipeline',
           withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: configuration.container_repo.jenkins_creds_id,
                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
 
-            pipeline.helmDeploy(
+            pipeline.helm.deploy(
                 dry_run       : false,
                 name          : appRelease,
                 namespace     : appNamespace,
@@ -398,11 +392,11 @@ podTemplate(label: 'jenkins-pipeline',
       if (debugHelmStatus) {
         stage('DEBUG: get helm status AFTER Deploy App'){
           container('helm') {
-            helmStatus = pipeline.helmStatus(
+            helmStatus = pipeline.helm.status(
               name    : appRelease
             )
           }        
-          container('kubectl'){
+          container('kubectl') {
             sh "kubectl -n ${appNamespace} get all || true"
           }
         }
@@ -423,7 +417,7 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage ('Create and Push Selenium Test Docker Image') {
         container('docker') {
-          pipeline.containerBuildPub(
+          pipeline.docker.buildAndPublish(
               dockerfile: configuration.test_container_repo.dockerfile,
               host      : configuration.test_container_repo.host,
               acct      : acct,
@@ -438,7 +432,7 @@ podTemplate(label: 'jenkins-pipeline',
       if (debugHelmStatus) {
         stage('DEBUG: get helm status BEFORE delete completed PODs if present') {
           container('helm') {
-            helmStatus = pipeline.helmStatus(
+            helmStatus = pipeline.helm.status(
               name    : appRelease
             )
           }        
@@ -464,7 +458,7 @@ podTemplate(label: 'jenkins-pipeline',
       if (debugHelmStatus) {
         stage('DEBUG: get helm status AFTER delete old UI test containers (new way)') {
           container('helm') {
-            helmStatus = pipeline.helmStatus(
+            helmStatus = pipeline.helm.status(
               name    : appRelease
             )
           }        
@@ -507,7 +501,7 @@ podTemplate(label: 'jenkins-pipeline',
           if(showHelmTestLogs) {
             // read helm status
             container('helm') {
-              helmStatus = pipeline.helmStatus(
+              helmStatus = pipeline.helm.status(
                 name    : appRelease
               )
             } 
@@ -526,7 +520,7 @@ podTemplate(label: 'jenkins-pipeline',
           if(!skipRemoveTestPods) {
             // read helm status
             container('helm') {
-              helmStatus = pipeline.helmStatus(
+              helmStatus = pipeline.helm.status(
                 name    : appRelease
               )
             } 
@@ -554,7 +548,7 @@ podTemplate(label: 'jenkins-pipeline',
         stage ('Remove App') {
           container('helm') {
             // delete test deployment
-            pipeline.helmDelete(
+            pipeline.helm.delete(
                 name       : appRelease
             )
           }
