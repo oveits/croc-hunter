@@ -471,17 +471,16 @@ podTemplate(label: 'jenkins-pipeline',
           // show logs of test pods:
           if(showHelmTestLogs) {
             // read helm status
+            def myHelmStatus
             container('helm') {
-              helmStatus = pipeline.helm.status(
-                name    : appRelease
-              )
+              myHelmStatus = pipeline.helm.status(name: appRelease)
             } 
 
             // show logs:
             container('kubectl') {
-              if(helmStatus.info.status.last_test_suite_run != null) {
-                helmStatus.info.status.last_test_suite_run.results.each { result ->
-                  sh "kubectl -n ${helmStatus.namespace} logs ${result.name} || true"
+              if(myHelmStatus?.info?.status?.last_test_suite_run?.results != null) {
+                myHelmStatus.info.status.last_test_suite_run.results.each { result ->
+                  sh "kubectl -n ${myHelmStatus.namespace} logs ${result.name} || true"
                 }
               }
             }
@@ -490,17 +489,16 @@ podTemplate(label: 'jenkins-pipeline',
           // delete test pods
           if(!skipRemoveTestPods) {
             // read helm status
+            def myHelmStatus
             container('helm') {
-              helmStatus = pipeline.helm.status(
-                name    : appRelease
-              )
+              myHelmStatus = pipeline.helm.status(name: appRelease)
             } 
 
             // delete test pods
             container('kubectl') {
-              if(helmStatus.info.status.last_test_suite_run != null) {
-                  helmStatus.info.status.last_test_suite_run.results.each { result ->
-                  sh "kubectl -n ${helmStatus.namespace} delete pod ${result.name} || true"
+              if(myHelmStatus?.info?.status?.last_test_suite_run?.results != null) {
+                  myHelmStatus?.info?.status?.last_test_suite_run?.results.each { result ->
+                  sh "kubectl -n ${myHelmStatus.namespace} delete pod ${result.name} || true"
                 }
               }
             }
