@@ -3,7 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@develop')
+@Library('github.com/oveits/jenkins-pipeline@feature/0010-deleteObsoletePods')
 
 def pipeline = [:]
 pipeline.configuration = new com.vocon_it.pipeline.Configuration()
@@ -207,6 +207,9 @@ podTemplate(label: 'jenkins-pipeline',
     // TODO: replace by pipeline.helm.purgeNonDeployed() ??
     stage('clean old versions, if not DEPLOYED') {
       container('helm') {
+        echo "OV DEBUG:"
+        echo "pipeline.helm.status(name: appRelease): ${pipeline.helm.status(name: appRelease)}"
+        echo "pipeline.helm.status(name: appRelease)?.info?.status?.code: ${pipeline.helm.status(name: appRelease)?.info?.status?.code}"
         if(pipeline.helm.status(name: appRelease)?.info?.status?.code != 1) {
           pipeline.helm.delete(name:appRelease)
         }
@@ -265,14 +268,6 @@ podTemplate(label: 'jenkins-pipeline',
 
     if (alwaysPerformTests || env.BRANCH_NAME =~ "PR-*" || env.BRANCH_NAME == "develop" || env.BRANCH_NAME ==~ /prod/) {
       stage('Deploy Selenium') {
-        //
-        // Deploy Selenium using Helm chart
-        // will not wait for Seöenium to be up and running to save time (is done in a later stage)
-        //
-        // TODO: in the moment, only a single Chrome Selenium Node is started (hard-coded). Please make this dynamic
-        //       if so, this also needs to be changed in the stage "Selenium complete?"
-        //
-
         // Delete and purge selenium, if present
         if ( !sharedSelenium ) {
           echo "delete and purge selenium, if present"
@@ -288,9 +283,12 @@ podTemplate(label: 'jenkins-pipeline',
         }
 
         container('helm') {
-          // Deploy Selenium:
+          // Deploy Selenium. Do not wait for Seöenium to be up and running to save time (is done in a later stage)
+
+          // TODO: in the moment, only a single Chrome Selenium Node is started (hard-coded). Please make this dynamic
+          //       if so, this also needs to be changed in the stage "Selenium complete?"
+          //
           sh """
-            # upgrade selenium revision. Install, if not present:
             helm upgrade --install ${seleniumRelease} stable/selenium \
               --namespace ${seleniumNamespace} \
               --set chromeDebug.enabled=true \
@@ -302,9 +300,7 @@ podTemplate(label: 'jenkins-pipeline',
       if (debugHelmStatus) {
         stage('DEBUG: get helm status BEFORE Clean App') {
           container('helm') {
-            helmStatus = pipeline.helm.status(
-              name    : appRelease
-            )
+            echo pipeline.helm.status(name: appRelease)
           }        
           container('kubectl') {
             sh "kubectl -n ${appNamespace} get all || true"
@@ -313,32 +309,19 @@ podTemplate(label: 'jenkins-pipeline',
       }
 
       if (env.BRANCH_NAME != "prod") {
-        stage('Clean App'){
-          // Clean App using Helm
+        // TODO: replace by pipeline.helm.purgeNonDeployed() ??
+        stage('Clean App, if not DEPLOYED') {
           container('helm') {
-
-            // purge old versions of ${appRelease}, if present (will find and purge deleted versions as well)
-            sh """
-              # purge deleted versions of ${appRelease}, if present
-              helm list -a --output yaml | grep 'Name: ${appRelease}\$' \
-                && helm delete --purge ${appRelease} || true
-            """
-            // TODO: purge only DELETED versions
-            // if jq is installed, we could use something like follows to find all FAILED or DELETED releases with Name "pr-15":
-            //    helm ls --output json | jq '.Releases | map( select( ((.Status=="FAILED") or (.Status=="DELETED")) and (.Name=="pr-15") ) )'
-            // or with regular expressions and a pipe in a next map(select(...)) instead of an "and" operator:
-            //    helm ls --output json | jq '.Releases | map( select(.Status|test("^FAILED$|^DELETED$") )) | map( select(.Name|test("^pr-15$") ))'
-            // another possibility is to define an object helmList
-            //    helmList = sh script: "helm list -a --output json"
+            if(pipeline.helm.status(name: appRelease)?.info?.status?.code != 1) {
+              pipeline.helm.delete(name:appRelease)
+            }
           }
         }
 
         if (debugHelmStatus) {
-          stage('DEBUG: get helm status AFTER Clean App'){
+          stage('DEBUG: get helm status AFTER Clean App') {
             container('helm') {
-              helmStatus = pipeline.helm.status(
-                name    : appRelease
-              )
+              echo pipeline.helm.status(name: appRelease)
             }
             container('kubectl') {
               sh "kubectl -n ${appNamespace} get all || true"
@@ -351,9 +334,11 @@ podTemplate(label: 'jenkins-pipeline',
         // Deploy using Helm chart
         //
         container('helm') {
-
-          withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: configuration.container_repo.jenkins_creds_id,
-                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+          withCredentials([[
+            $class: 'UsernamePasswordMultiBinding', 
+            credentialsId: configuration.container_repo.jenkins_creds_id,
+            usernameVariable: 'USERNAME', 
+            passwordVariable: 'PASSWORD']]) {
 
             pipeline.helm.deploy(
                 dry_run       : false,
@@ -388,9 +373,7 @@ podTemplate(label: 'jenkins-pipeline',
       if (debugHelmStatus) {
         stage('DEBUG: get helm status AFTER Deploy App'){
           container('helm') {
-            helmStatus = pipeline.helm.status(
-              name    : appRelease
-            )
+            echo pipeline.helm.status(name: appRelease)
           }        
           container('kubectl') {
             sh "kubectl -n ${appNamespace} get all || true"
@@ -400,6 +383,9 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage ('Selenium complete?') {
         // wait for Selenium deployments, if needed
+        // TODO: within helm container, read all deployments of helm release 
+        //       and then use kubectl container to wait for all deployments to be ready 
+        // TODO: clarify: within the helm pipeline? How to handle the need for a kubectl container? Create a container with helm and kubectl might be the easiest solution)
         container('kubectl') {
           sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-hub -n ${seleniumNamespace} --timeout=5m"
           sh "kubectl rollout status --watch deployment/${seleniumRelease}-selenium-chrome-debug -n ${seleniumNamespace} --timeout=5m"
@@ -428,9 +414,7 @@ podTemplate(label: 'jenkins-pipeline',
       if (debugHelmStatus) {
         stage('DEBUG: get helm status BEFORE delete completed PODs if present') {
           container('helm') {
-            helmStatus = pipeline.helm.status(
-              name    : appRelease
-            )
+            echo pipeline.helm.status(name: appRelease)
           }        
           container('kubectl') {
             sh "kubectl -n ${appNamespace} get all || true"
@@ -440,23 +424,22 @@ podTemplate(label: 'jenkins-pipeline',
 
       stage('delete completed PODs if present') {
         container('kubectl') {
-          sh """
-          PODS=\$(kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}')
-          if [ "\$PODS" != "" ]; then
-            echo \$PODS | xargs -n 1 kubectl -n ${appNamespace} delete pod
-          else
-            echo "no completed PODs found; continuing"
-          fi
-          """
+          pipeline.kubectl.deleteObsoletePods(appNamespace)
+          // sh """
+          // PODS=\$(kubectl -n ${appNamespace} get pods | grep 'Completed\\|Error' | awk '{print \$1}')
+          // if [ "\$PODS" != "" ]; then
+          //   echo \$PODS | xargs -n 1 kubectl -n ${appNamespace} delete pod
+          // else
+          //   echo "no completed PODs found; continuing"
+          // fi
+          // """
         }
       }
 
       if (debugHelmStatus) {
         stage('DEBUG: get helm status AFTER delete old UI test containers (new way)') {
           container('helm') {
-            helmStatus = pipeline.helm.status(
-              name    : appRelease
-            )
+            echo pipeline.helm.status(name: appRelease)
           }        
           container('kubectl') {
             sh "kubectl -n ${appNamespace} get all || true"
