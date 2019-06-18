@@ -3,7 +3,7 @@
 // load pipeline functions
 // Requires pipeline-github-lib plugin to load library from github
 
-@Library('github.com/oveits/jenkins-pipeline@feature/0009-refactor-into-separate-files-config-helm-kube')
+@Library('github.com/oveits/jenkins-pipeline@develop')
 
 def pipeline = [:]
 pipeline.configuration = new com.vocon_it.pipeline.Configuration()
