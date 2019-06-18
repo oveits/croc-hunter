@@ -207,10 +207,8 @@ podTemplate(label: 'jenkins-pipeline',
     // TODO: replace by pipeline.helm.purgeNonDeployed() ??
     stage('clean old versions, if not DEPLOYED') {
       container('helm') {
-        echo "OV DEBUG:"
-        echo "pipeline.helm.status(name: appRelease): ${pipeline.helm.status(name: appRelease)}"
-        echo "pipeline.helm.status(name: appRelease)?.info?.status?.code: ${pipeline.helm.status(name: appRelease)?.info?.status?.code}"
-        if(pipeline.helm.status(name: appRelease)?.info?.status?.code != 1) {
+        Integer myStatusCode = pipeline.helm.status(name: appRelease)?.info?.status?.code
+        if(myStatusCode && myStatusCode != 1) {
           pipeline.helm.delete(name:appRelease)
         }
       }
@@ -272,7 +270,8 @@ podTemplate(label: 'jenkins-pipeline',
         if ( !sharedSelenium ) {
           echo "delete and purge selenium, if present"
           container('helm') {
-            if(pipeline.helm.status(name: seleniumRelease)?.info?.status?.code != 1) {
+            Integer myStatusCode = pipeline.helm.status(name: seleniumRelease)?.info?.status?.code
+            if(myStatusCode && myStatusCode != 1) {
               pipeline.helm.delete(name:seleniumRelease)
             }
             // sh """
@@ -312,7 +311,8 @@ podTemplate(label: 'jenkins-pipeline',
         // TODO: replace by pipeline.helm.purgeNonDeployed() ??
         stage('Clean App, if not DEPLOYED') {
           container('helm') {
-            if(pipeline.helm.status(name: appRelease)?.info?.status?.code != 1) {
+            Integer myStatusCode = pipeline.helm.status(name: appRelease)?.info?.status?.code
+            if(myStatusCode && myStatusCode != 1) {
               pipeline.helm.delete(name:appRelease)
             }
           }
@@ -527,28 +527,21 @@ podTemplate(label: 'jenkins-pipeline',
         stage ('Remove App') {
           container('helm') {
             // delete test deployment
-            pipeline.helm.delete(
-                name       : appRelease
-            )
+            Integer myStatusCode = pipeline.helm.status(name: appRelease)?.info?.status?.code
+            if(myStatusCode) {
+              pipeline.helm.delete(name: appRelease)
+            }
           }
         }
       }
 
       if ( !sharedSelenium ) {
         stage('Remove Selenium') {
-          // Delete Helm revision
           container('helm') {
-            // init
-            println "initialzing helm client"
-            sh "helm init"
-            println "checking client/server version"
-            sh "helm version"
-            
-            println "deleting and purging selenium, if present"
-            sh """
-              helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
-                && helm delete --purge ${seleniumRelease}
-            """
+            Integer myStatusCode = pipeline.helm.status(name: seleniumRelease)?.info?.status?.code
+            if(myStatusCode) {
+              pipeline.helm.delete(name: seleniumRelease)
+            }
           }
         }
       }
