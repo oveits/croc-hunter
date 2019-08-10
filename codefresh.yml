@@ -182,9 +182,7 @@ steps:
           INGRESS_HOSTNAME: crochunter.codefresh.vocon-it.com
           #RELEASE_NAME: ${{RELEASE_NAME}}
           RELEASE_NAME: mychart-prod
-          #RELEASE_NAME: ${{Deploy_with_Helm.environment.RELEASE_NAME}}
         command: bash -c 'IFS=" " read -a browserarray <<< "${{BROWSERS}}" && for browser in "$${browserarray[@]}"; do BROWSER=$$browser python -m pytest -vvv --html=./${{CF_BUILD_ID}}-selenium-report-$${browser}.html --self-contained-html ./tests/selenium/test_app.py; done'
-        #command: bash -c 'IFS=" " read -a browserarray <<< "chrome firefox" && for browser in "$${browserarray[@]}"; do BROWSER=$$browser python -m pytest -vvv --html=./${{CF_BUILD_ID}}-selenium-report-$${browser}.html --self-contained-html ./tests/selenium/test_app.py; done'
 
         volumes:
           - '${{CF_VOLUME_NAME}}:/codefresh/volume'

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ template "fullname" . }}-selenium-test"
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: {{ template "fullname" . }}-selenium-test
+      image: "oveits/crochunter-tests:{{.Values.test.imageTag}}"
+      env:
+        - name: SELENIUM_HUB_URL
+          value: "{{.Values.test.seleniumHubUrl}}"
+        - name: INGRESS_HOSTNAME
+          value: "{{.Values.test.ingressHostname}}"
+        - name: RELEASE_NAME
+          value: "{{.Values.test.releaseName}}"
+        - name: CF_SHORT_REVISION
+          value: "{{.Values.commit.sha}}"
+  restartPolicy: Never

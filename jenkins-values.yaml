@@ -26,15 +26,19 @@ Master:
       - blueocean:1.8.2
       - artifactory:2.16.2
       - tfs:5.139.2
+      - pipeline-utility-steps:2.3.0
 
   ScriptApproval:
     - "method groovy.json.JsonSlurperClassic parseText java.lang.String"
     - "new groovy.json.JsonSlurperClassic"
+    - "staticMethod org.apache.commons.lang.RandomStringUtils random int boolean boolean"
     - "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods leftShift java.util.Map java.util.Map"
     - "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods split java.lang.String"
     - "method java.util.Collection toArray"
     - "staticMethod org.kohsuke.groovy.sandbox.impl.Checker checkedCall java.lang.Object boolean boolean java.lang.String java.lang.Object[]"
     - "staticMethod org.kohsuke.groovy.sandbox.impl.Checker checkedGetProperty java.lang.Object boolean boolean java.lang.Object"
+    - "staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods split java.lang.String"
+    - "new java.io.ByteArrayOutputStream"
 
   Ingress:
     ApiVersion: extensions/v1beta1
