@@ -20,7 +20,8 @@ configuration = [
     cpu:"10m",
     memory:"128Mi",
     test: true,
-    hostname:"crochunter.vocon-it.com"
+    hostname:"crochunter.vocon-it.com",
+    chart_dir:"charts/croc-hunter"
   ],
   k8s_secret:[
     name:"croc-hunter-secrets"
@@ -119,7 +120,7 @@ podTemplate(label: 'jenkins-pipeline',
     stage ('enrich configuration') {
 
       // DEFAULTS
-      configuration.chart_dir               = "${pwd()}/charts/croc-hunter"
+      // configuration.chart_dir               = "${pwd()}/charts/croc-hunter"
       configuration = pipeline.configuration.setDefaults(configuration)
       
       // prepare deployment variables
@@ -161,7 +162,7 @@ podTemplate(label: 'jenkins-pipeline',
 
     // config vars:
     def     acct                 = configuration.acct
-    String  chart_dir            = configuration.chart_dir
+    String  chart_dir            = configuration.app.chart_dir
     boolean alwaysPerformTests   = configuration.alwaysPerformTests
     boolean debugPipeline        = configuration.debugPipeline
     boolean sharedSelenium       = configuration.sharedSelenium
@@ -188,7 +189,6 @@ podTemplate(label: 'jenkins-pipeline',
     String  testSeleniumHubUrl    = configuration.testSeleniumHubUrl
 
     // working vars:
-    def     helmStatus
     String  testLog
 
 
@@ -217,7 +217,7 @@ podTemplate(label: 'jenkins-pipeline',
     stage ('deployment dry-run') {
       container('helm') {
         // run helm chart linter
-        pipeline.helm.lint(chart_dir)
+        pipeline.helm.lint("${pwd()}/${chart_dir}")
 
         // run dry-run helm chart installation
         pipeline.helm.deploy (
@@ -274,15 +274,11 @@ podTemplate(label: 'jenkins-pipeline',
             if(myStatusCode && myStatusCode != 1) {
               pipeline.helm.delete(name:seleniumRelease)
             }
-            // sh """
-            //   helm list -a --output yaml | grep 'Name: ${seleniumRelease}\$' \
-            //     && helm delete --purge ${seleniumRelease} || true
-            // """
           }
         }
 
         container('helm') {
-          // Deploy Selenium. Do not wait for Seöenium to be up and running to save time (is done in a later stage)
+          // Deploy Selenium. Do not wait for Selenium to be up and running to save time (is done in a later stage)
 
           // TODO: in the moment, only a single Chrome Selenium Node is started (hard-coded). Please make this dynamic
           //       if so, this also needs to be changed in the stage "Selenium complete?"
@@ -293,6 +289,9 @@ podTemplate(label: 'jenkins-pipeline',
               --set chromeDebug.enabled=true \
               --force
           """
+          sh ```
+          sed -i 's_\(<version>\)\(.*\)\(<\/version>\)_\1$version\3_' pom.xml
+          ```
         }
       }
    
@@ -307,28 +306,29 @@ podTemplate(label: 'jenkins-pipeline',
         }
       }
 
-      if (env.BRANCH_NAME != "prod") {
+      // if (env.BRANCH_NAME != "prod") {
         // TODO: replace by pipeline.helm.purgeNonDeployed() ??
-        stage('Clean App, if not DEPLOYED') {
-          container('helm') {
-            Integer myStatusCode = pipeline.helm.status(name: appRelease)?.info?.status?.code
-            if(myStatusCode && myStatusCode != 1) {
-              pipeline.helm.delete(name:appRelease)
-            }
-          }
-        }
-
-        if (debugHelmStatus) {
-          stage('DEBUG: get helm status AFTER Clean App') {
-            container('helm') {
-              echo pipeline.helm.status(name: appRelease)
-            }
-            container('kubectl') {
-              sh "kubectl -n ${appNamespace} get all || true"
-            }
+      stage('Clean App, if not DEPLOYED') {
+        container('helm') {
+          Integer myStatusCode = pipeline.helm.status(name: appRelease)?.info?.status?.code
+          if(myStatusCode && myStatusCode != 1) {
+            pipeline.helm.delete(name:appRelease)
+            // pipeline.helm.delete(name:appRelease)
           }
         }
       }
+
+      if (debugHelmStatus) {
+        stage('DEBUG: get helm status AFTER Clean App') {
+          container('helm') {
+            echo pipeline.helm.status(name: appRelease)
+          }
+          container('kubectl') {
+            sh "kubectl -n ${appNamespace} get all || true"
+          }
+        }
+      }
+      // }
 
       stage ('Deploy App') {
         // Deploy using Helm chart
@@ -497,7 +497,7 @@ podTemplate(label: 'jenkins-pipeline',
             // delete test pods
             container('kubectl') {
               if(myHelmStatus?.info?.status?.last_test_suite_run?.results != null) {
-                  myHelmStatus?.info?.status?.last_test_suite_run?.results.each { result ->
+                myHelmStatus?.info?.status?.last_test_suite_run?.results.each { result ->
                   sh "kubectl -n ${myHelmStatus.namespace} delete pod ${result.name} || true"
                 }
               }
