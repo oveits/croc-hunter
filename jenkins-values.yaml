@@ -15,7 +15,8 @@ Master:
   ServiceType: ClusterIP
   ServicePort: 8080
   InstallPlugins:
-      - kubernetes:1.12.4
+#      - kubernetes:1.12.4
+      - kubernetes:1.24.1
       - pipeline-stage-view:2.10
       - pipeline-rest-api:2.10
       - workflow-aggregator:2.5
@@ -27,6 +28,7 @@ Master:
       - artifactory:2.16.2
       - tfs:5.139.2
       - pipeline-utility-steps:2.3.0
+      - ssh-steps:2.0.0
 
   ScriptApproval:
     - "method groovy.json.JsonSlurperClassic parseText java.lang.String"
